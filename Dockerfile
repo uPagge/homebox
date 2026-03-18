@@ -19,7 +19,7 @@ RUN npm install -g pnpm@10
 # Copy over source files and node_modules from dependencies stage
 COPY frontend . 
 COPY --from=frontend-dependencies /app/node_modules ./node_modules
-RUN pnpm build
+RUN pnpm exec nuxt prepare && pnpm build
 
 # Go dependencies stage
 FROM public.ecr.aws/docker/library/golang:alpine AS builder-dependencies
