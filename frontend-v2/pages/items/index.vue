@@ -253,5 +253,17 @@ onMounted(() => fetchItems());
       @update:open="showBatchTagRemove = $event"
       @done="fetchItems(); exitSelectionMode()"
     />
+    <BatchDeleteSheet
+      :open="showBatchDelete"
+      :items="selectedItems"
+      @update:open="showBatchDelete = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchDuplicateSheet
+      :open="showBatchDuplicate"
+      :items="selectedItems"
+      @update:open="showBatchDuplicate = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
   </div>
 </template>
