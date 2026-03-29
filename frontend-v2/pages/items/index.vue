@@ -239,5 +239,19 @@ onMounted(() => fetchItems());
       @update:open="showBatchLocation = $event"
       @done="fetchItems(); exitSelectionMode()"
     />
+    <BatchTagSheet
+      :open="showBatchTagAdd"
+      :items="selectedItems"
+      mode="add"
+      @update:open="showBatchTagAdd = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchTagSheet
+      :open="showBatchTagRemove"
+      :items="selectedItems"
+      mode="remove"
+      @update:open="showBatchTagRemove = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
   </div>
 </template>
