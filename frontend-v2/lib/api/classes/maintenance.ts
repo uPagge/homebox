@@ -12,8 +12,10 @@ export interface MaintenanceFilters {
 
 export class MaintenanceAPI extends BaseAPI {
   getAll(filters: MaintenanceFilters) {
+    const params: Record<string, string> = {};
+    if (filters.status) params.status = filters.status;
     return this.http.get<MaintenanceEntryWithDetails[]>({
-      url: route(`/maintenance`, { status: filters.status?.toString() }),
+      url: route(`/maintenance`, params),
     });
   }
 

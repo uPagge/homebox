@@ -73,8 +73,10 @@ export class FieldsAPI extends BaseAPI {
 
 export class ItemMaintenanceAPI extends BaseAPI {
   getLog(itemId: string, filters: MaintenanceFilters = {}) {
+    const params: Record<string, string> = {};
+    if (filters.status) params.status = filters.status;
     return this.http.get<MaintenanceEntryWithDetails[]>({
-      url: route(`/items/${itemId}/maintenance`, { status: filters.status?.toString() }),
+      url: route(`/items/${itemId}/maintenance`, params),
     });
   }
 
