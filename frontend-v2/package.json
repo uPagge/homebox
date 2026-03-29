@@ -1,0 +1,38 @@
+{
+  "name": "homebox-frontend-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/nuxt": "^14.2.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-vue-next": "^1.0.0",
+    "nuxt": "^3.16.2",
+    "reka-ui": "^2.9.2",
+    "tailwind-merge": "^3.5.0",
+    "vaul-vue": "^0.4.1",
+    "vue": "latest",
+    "vue-router": "latest",
+    "vue-sonner": "^2.0.9"
+  },
+  "devDependencies": {
+    "@iconify-json/mdi": "^1.2.3",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@pinia/nuxt": "^0.11.3",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "shadcn-nuxt": "^2.4.3",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.2",
+    "unplugin-icons": "^23.0.1",
+    "vue-tsc": "^3.2.6"
+  }
+}
