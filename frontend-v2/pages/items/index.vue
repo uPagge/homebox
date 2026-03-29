@@ -57,6 +57,13 @@ const selectedItems = computed(() =>
   items.value.filter(i => selectedIds.value.has(i.id))
 );
 
+// Batch action sheets
+const showBatchLocation = ref(false);
+const showBatchTagAdd = ref(false);
+const showBatchTagRemove = ref(false);
+const showBatchDelete = ref(false);
+const showBatchDuplicate = ref(false);
+
 // Debounced search
 const searchInput = ref(filters.q);
 const debouncedSearch = useDebounceFn((val: string) => {
@@ -213,5 +220,16 @@ onMounted(() => fetchItems());
         Вперёд
       </button>
     </div>
+
+    <!-- Selection Bar -->
+    <SelectionBar
+      v-if="selectionMode && selectedIds.size > 0"
+      :count="selectedIds.size"
+      @change-location="showBatchLocation = true"
+      @add-tags="showBatchTagAdd = true"
+      @remove-tags="showBatchTagRemove = true"
+      @duplicate="showBatchDuplicate = true"
+      @delete="showBatchDelete = true"
+    />
   </div>
 </template>
