@@ -20,6 +20,7 @@ export default defineNuxtConfig({
     { path: "~/components/items/detail", pathPrefix: false },
     { path: "~/components/locations", pathPrefix: false },
     { path: "~/components/labels", pathPrefix: false },
+    { path: "~/components/maintenance", pathPrefix: false },
     "~/components/ui",
   ],
 
