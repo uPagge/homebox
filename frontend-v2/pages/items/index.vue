@@ -231,5 +231,13 @@ onMounted(() => fetchItems());
       @duplicate="showBatchDuplicate = true"
       @delete="showBatchDelete = true"
     />
+
+    <!-- Batch sheets -->
+    <BatchLocationSheet
+      :open="showBatchLocation"
+      :items="selectedItems"
+      @update:open="showBatchLocation = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
   </div>
 </template>
