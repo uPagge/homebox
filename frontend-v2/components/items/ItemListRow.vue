@@ -13,8 +13,7 @@ const emit = defineEmits<{
 const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
 
 const thumbnailUrl = computed(() => {
-  if (!props.item.imageId) return null;
-  return makeThumbnailUrl(props.item.id);
+  return makeThumbnailUrl(props.item.id, props.item.thumbnailId || props.item.imageId);
 });
 </script>
 

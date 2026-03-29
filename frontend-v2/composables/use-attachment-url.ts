@@ -5,8 +5,9 @@ export function useAttachmentUrl() {
     return api.items.authURL(`/items/${itemId}/attachments/${attachmentId}`);
   }
 
-  function thumbnailUrl(itemId: string): string | null {
-    return api.items.authURL(`/items/${itemId}/attachments/thumbnail`);
+  function thumbnailUrl(itemId: string, thumbnailId?: string | null): string | null {
+    if (!thumbnailId) return null;
+    return api.items.authURL(`/items/${itemId}/attachments/${thumbnailId}`);
   }
 
   return { attachmentUrl, thumbnailUrl };
