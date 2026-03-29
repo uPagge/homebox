@@ -62,14 +62,14 @@ export function useItems() {
     loading.value = true;
     try {
       const q: ItemsQuery = {
-        q: filters.q || undefined,
-        locations: filters.locations.length ? filters.locations : undefined,
-        tags: filters.tags.length ? filters.tags : undefined,
         page: filters.page,
         pageSize: filters.pageSize,
         orderBy: filters.orderBy,
-        includeArchived: filters.includeArchived || undefined,
       };
+      if (filters.q) q.q = filters.q;
+      if (filters.locations.length) q.locations = filters.locations;
+      if (filters.tags.length) q.tags = filters.tags;
+      if (filters.includeArchived) q.includeArchived = true;
 
       const resp = await api.items.getAll(q);
       if (resp.data) {

@@ -14,6 +14,13 @@ export default defineNuxtConfig({
     componentDir: "./components/ui",
   },
 
+  components: [
+    { path: "~/components/app", pathPrefix: false },
+    { path: "~/components/items", pathPrefix: false },
+    { path: "~/components/items/detail", pathPrefix: false },
+    "~/components/ui",
+  ],
+
   devServer: {
     port: 3001,
   },
@@ -24,6 +31,7 @@ export default defineNuxtConfig({
         target: "https://homebox.home.local/api",
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: "",
       },
     },
   },

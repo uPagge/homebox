@@ -5,10 +5,12 @@ useTheme();
 </script>
 
 <template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
-  <ClientOnly>
-    <Toaster class="pointer-events-auto" />
-  </ClientOnly>
+  <DialogProvider>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+    <ClientOnly>
+      <Toaster class="pointer-events-auto" />
+    </ClientOnly>
+  </DialogProvider>
 </template>
