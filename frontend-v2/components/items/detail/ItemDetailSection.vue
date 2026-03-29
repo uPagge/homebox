@@ -9,7 +9,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  "update:editing": [value: boolean];
+  edit: [];
   save: [];
   cancel: [];
 }>();
@@ -51,7 +51,7 @@ const collapsed = ref(false);
         <button
           v-else
           class="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          @click="emit('update:editing', true)"
+          @click="emit('edit')"
         >
           <Pencil class="w-4 h-4" />
         </button>
