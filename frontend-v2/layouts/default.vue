@@ -26,5 +26,9 @@ const showQuickAdd = ref(false);
     </main>
 
     <BottomTabs @add="showQuickAdd = true" />
+    <QuickAddSheet
+      v-model:open="showQuickAdd"
+      @created="showQuickAdd = false"
+    />
   </div>
 </template>
