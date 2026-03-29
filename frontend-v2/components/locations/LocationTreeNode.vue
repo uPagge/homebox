@@ -6,9 +6,11 @@ const props = defineProps<{
   node: TreeItem;
   depth: number;
   itemCounts: Map<string, number>;
+  forceExpand?: boolean;
 }>();
 
 const expanded = ref(false);
+const isExpanded = computed(() => props.forceExpand || expanded.value);
 const hasChildren = computed(() => props.node.children && props.node.children.length > 0);
 const count = computed(() => props.itemCounts.get(props.node.id) ?? 0);
 </script>
@@ -23,7 +25,7 @@ const count = computed(() => props.itemCounts.get(props.node.id) ?? 0);
       <button
         v-if="hasChildren"
         class="w-5 h-5 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-transform"
-        :class="expanded ? 'rotate-90' : ''"
+        :class="isExpanded ? 'rotate-90' : ''"
         @click="expanded = !expanded"
       >
         <ChevronRight class="w-4 h-4" />
@@ -48,13 +50,14 @@ const count = computed(() => props.itemCounts.get(props.node.id) ?? 0);
     </div>
 
     <!-- Children (recursive) -->
-    <div v-if="hasChildren && expanded">
+    <div v-if="hasChildren && isExpanded">
       <LocationTreeNode
         v-for="child in node.children"
         :key="child.id"
         :node="child"
         :depth="depth + 1"
         :item-counts="itemCounts"
+        :force-expand="forceExpand"
       />
     </div>
   </div>
