@@ -12,6 +12,51 @@ const viewMode = computed({
   set: (v) => { preferences.value.itemDisplayView = v; },
 });
 
+// Selection mode
+const selectionMode = ref(false);
+const selectedIds = ref<Set<string>>(new Set());
+
+function toggleSelection(id: string) {
+  const s = new Set(selectedIds.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  selectedIds.value = s;
+}
+
+function toggleSelectAll() {
+  if (selectedIds.value.size === items.value.length) {
+    selectedIds.value = new Set();
+  } else {
+    selectedIds.value = new Set(items.value.map(i => i.id));
+  }
+}
+
+function exitSelectionMode() {
+  selectionMode.value = false;
+  selectedIds.value = new Set();
+}
+
+// Clear selection on page/filter change
+watch([() => filters.page, () => filters.q, () => filters.locations, () => filters.tags], () => {
+  selectedIds.value = new Set();
+});
+
+// ESC to exit selection mode
+onMounted(() => {
+  const handler = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && selectionMode.value) {
+      exitSelectionMode();
+    }
+  };
+  document.addEventListener("keydown", handler);
+  onUnmounted(() => document.removeEventListener("keydown", handler));
+});
+
+// Selected items as array (for batch sheets)
+const selectedItems = computed(() =>
+  items.value.filter(i => selectedIds.value.has(i.id))
+);
+
 // Debounced search
 const searchInput = ref(filters.q);
 const debouncedSearch = useDebounceFn((val: string) => {
@@ -46,6 +91,23 @@ onMounted(() => fetchItems());
         </p>
       </div>
       <div class="flex items-center gap-1">
+        <button
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+          :class="selectionMode
+            ? 'bg-primary text-primary-foreground'
+            : 'text-muted-foreground hover:bg-accent'"
+          @click="selectionMode ? exitSelectionMode() : (selectionMode = true)"
+        >
+          {{ selectionMode ? `Выбрано: ${selectedIds.size}` : 'Выбрать' }}
+        </button>
+        <button
+          v-if="selectionMode"
+          class="px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-accent transition-colors"
+          @click="toggleSelectAll"
+        >
+          {{ selectedIds.size === items.length ? 'Снять все' : 'Все' }}
+        </button>
+        <div class="w-px h-5 bg-border mx-1" />
         <button
           class="p-2 rounded-md transition-colors"
           :class="viewMode === 'card' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent'"
@@ -111,7 +173,10 @@ onMounted(() => fetchItems());
         v-for="item in items"
         :key="item.id"
         :item="item"
+        :selection-mode="selectionMode"
+        :selected="selectedIds.has(item.id)"
         @quantity-update="handleQuantityUpdate"
+        @toggle-select="toggleSelection"
       />
     </div>
 
@@ -121,7 +186,10 @@ onMounted(() => fetchItems());
         v-for="item in items"
         :key="item.id"
         :item="item"
+        :selection-mode="selectionMode"
+        :selected="selectedIds.has(item.id)"
         @quantity-update="handleQuantityUpdate"
+        @toggle-select="toggleSelection"
       />
     </div>
 

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { MapPin, ChevronRight } from "lucide-vue-next";
+import { MapPin, ChevronRight, Check } from "lucide-vue-next";
 import type { ItemSummary } from "~~/lib/api/types/data-contracts";
 
 const props = defineProps<{
   item: ItemSummary;
+  selectionMode?: boolean;
+  selected?: boolean;
 }>();
 
 const emit = defineEmits<{
   quantityUpdate: [id: string, quantity: number];
+  toggleSelect: [id: string];
 }>();
 
 const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
@@ -15,13 +18,36 @@ const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
 const thumbnailUrl = computed(() => {
   return makeThumbnailUrl(props.item.id, props.item.thumbnailId || props.item.imageId);
 });
+
+function handleClick(e: Event) {
+  if (props.selectionMode) {
+    e.preventDefault();
+    emit("toggleSelect", props.item.id);
+  }
+}
 </script>
 
 <template>
   <NuxtLink
-    :to="`/items/${item.id}`"
-    class="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors border-b border-border last:border-b-0"
+    :to="selectionMode ? undefined : `/items/${item.id}`"
+    class="flex items-center gap-3 px-4 py-3 transition-colors border-b border-border last:border-b-0"
+    :class="[
+      selected ? 'bg-primary/5' : 'hover:bg-accent/50',
+      selectionMode ? 'cursor-pointer' : '',
+    ]"
+    @click="handleClick"
   >
+    <!-- Checkbox -->
+    <div
+      v-if="selectionMode"
+      class="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
+      :class="selected
+        ? 'bg-primary border-primary text-primary-foreground'
+        : 'border-muted-foreground/40'"
+    >
+      <Check v-if="selected" class="w-3 h-3" />
+    </div>
+
     <!-- Thumbnail -->
     <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-muted/30 flex items-center justify-center">
       <img
@@ -55,10 +81,11 @@ const thumbnailUrl = computed(() => {
     <!-- Quantity + Chevron -->
     <div class="flex items-center gap-2 shrink-0">
       <QuantityStepper
+        v-if="!selectionMode"
         :quantity="item.quantity"
         @update="emit('quantityUpdate', item.id, $event)"
       />
-      <ChevronRight class="w-4 h-4 text-muted-foreground" />
+      <ChevronRight v-if="!selectionMode" class="w-4 h-4 text-muted-foreground" />
     </div>
   </NuxtLink>
 </template>

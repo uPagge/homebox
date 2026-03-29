@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { MapPin } from "lucide-vue-next";
+import { MapPin, Check } from "lucide-vue-next";
 import type { ItemSummary } from "~~/lib/api/types/data-contracts";
 
 const props = defineProps<{
   item: ItemSummary;
+  selectionMode?: boolean;
+  selected?: boolean;
 }>();
 
 const emit = defineEmits<{
   quantityUpdate: [id: string, quantity: number];
+  toggleSelect: [id: string];
 }>();
 
 const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
@@ -15,15 +18,27 @@ const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
 const thumbnailUrl = computed(() => {
   return makeThumbnailUrl(props.item.id, props.item.thumbnailId || props.item.imageId);
 });
+
+function handleClick(e: Event) {
+  if (props.selectionMode) {
+    e.preventDefault();
+    emit("toggleSelect", props.item.id);
+  }
+}
 </script>
 
 <template>
   <NuxtLink
-    :to="`/items/${item.id}`"
-    class="group block bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all"
+    :to="selectionMode ? undefined : `/items/${item.id}`"
+    class="group block bg-card border rounded-xl overflow-hidden transition-all"
+    :class="[
+      selected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/30 hover:shadow-sm',
+      selectionMode ? 'cursor-pointer' : '',
+    ]"
+    @click="handleClick"
   >
     <!-- Thumbnail or Initials -->
-    <div class="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
+    <div class="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden relative">
       <img
         v-if="thumbnailUrl"
         :src="thumbnailUrl"
@@ -32,6 +47,17 @@ const thumbnailUrl = computed(() => {
         loading="lazy"
       />
       <ItemInitials v-else :name="item.name" size="lg" />
+
+      <!-- Checkbox overlay -->
+      <div
+        v-if="selectionMode"
+        class="absolute top-2 left-2 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors"
+        :class="selected
+          ? 'bg-primary border-primary text-primary-foreground'
+          : 'bg-card/80 border-muted-foreground/40'"
+      >
+        <Check v-if="selected" class="w-3 h-3" />
+      </div>
     </div>
 
     <!-- Info -->
@@ -61,7 +87,7 @@ const thumbnailUrl = computed(() => {
       </div>
 
       <!-- Quantity -->
-      <div class="flex items-center justify-between pt-1">
+      <div v-if="!selectionMode" class="flex items-center justify-between pt-1">
         <QuantityStepper
           :quantity="item.quantity"
           @update="emit('quantityUpdate', item.id, $event)"
