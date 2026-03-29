@@ -12,21 +12,23 @@ const email = ref("");
 const password = ref("");
 const stayLoggedIn = ref(true);
 const loading = ref(false);
+const errorMsg = ref("");
 
 async function handleLogin() {
   if (!email.value || !password.value) return;
 
   loading.value = true;
+  errorMsg.value = "";
   try {
     const api = usePublicApi();
     const result = await authCtx.login(api, email.value, password.value, stayLoggedIn.value);
     if (result.error) {
-      toast.error("Login failed. Check your credentials.");
+      errorMsg.value = "Login failed. Check your credentials.";
       return;
     }
     router.push("/");
-  } catch {
-    toast.error("Connection error. Is the server running?");
+  } catch (e: any) {
+    errorMsg.value = `Connection error: ${e?.message || "Is the server running?"}`;
   } finally {
     loading.value = false;
   }
@@ -41,6 +43,10 @@ async function handleLogin() {
       </div>
       <h1 class="text-2xl font-semibold">Homebox</h1>
       <p class="text-muted-foreground text-sm mt-1">Sign in to your inventory</p>
+    </div>
+
+    <div v-if="errorMsg" class="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
+      {{ errorMsg }}
     </div>
 
     <form class="space-y-4" @submit.prevent="handleLogin">

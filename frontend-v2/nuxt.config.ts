@@ -18,9 +18,13 @@ export default defineNuxtConfig({
     port: 3001,
   },
 
-  routeRules: {
-    "/api/**": {
-      proxy: { to: "http://localhost:7745/api/**" },
+  nitro: {
+    devProxy: {
+      "/api": {
+        target: "https://homebox.home.local/api",
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 

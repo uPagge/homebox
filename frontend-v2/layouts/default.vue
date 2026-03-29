@@ -4,11 +4,11 @@ const showQuickAdd = ref(false);
 
 <template>
   <div class="flex min-h-screen">
-    <Sidebar>
+    <AppSidebar>
       <template #search>
         <SearchBar />
       </template>
-    </Sidebar>
+    </AppSidebar>
 
     <main class="flex-1 min-w-0">
       <header class="md:hidden sticky top-0 z-40 bg-card border-b border-border px-4 py-2.5">
