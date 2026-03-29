@@ -4,7 +4,7 @@ import {
   Shield, ShieldAlert, ShieldCheck,
   Paperclip, Star,
 } from "lucide-vue-next";
-import type { ItemOut } from "~~/lib/api/types/data-contracts";
+import type { ItemOut, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
 
 definePageMeta({ layout: "default" });
@@ -88,6 +88,74 @@ async function deleteItem() {
   router.push("/items");
 }
 
+// === Inline Edit State ===
+const editingSection = ref<string | null>(null);
+
+// Create a deep copy for editing
+const editForm = ref<Partial<ItemOut>>({});
+
+function startEdit(section: string) {
+  editingSection.value = section;
+  editForm.value = JSON.parse(JSON.stringify(item.value));
+}
+
+function cancelEdit() {
+  editingSection.value = null;
+  editForm.value = {};
+}
+
+async function saveEdit() {
+  if (!item.value || !editForm.value) return;
+
+  try {
+    const updateData = {
+      ...item.value,
+      name: editForm.value.name ?? item.value.name,
+      description: editForm.value.description ?? item.value.description,
+      locationId: editForm.value.location?.id ?? item.value.location?.id ?? "",
+      quantity: editForm.value.quantity ?? item.value.quantity,
+      tagIds: (editForm.value.tags ?? item.value.tags).map(t => t.id),
+      manufacturer: editForm.value.manufacturer ?? item.value.manufacturer,
+      modelNumber: editForm.value.modelNumber ?? item.value.modelNumber,
+      serialNumber: editForm.value.serialNumber ?? item.value.serialNumber,
+      notes: editForm.value.notes ?? item.value.notes,
+      purchaseFrom: editForm.value.purchaseFrom ?? item.value.purchaseFrom,
+      purchasePrice: editForm.value.purchasePrice ?? item.value.purchasePrice,
+      purchaseTime: editForm.value.purchaseTime ?? item.value.purchaseTime,
+      warrantyExpires: editForm.value.warrantyExpires ?? item.value.warrantyExpires,
+      warrantyDetails: editForm.value.warrantyDetails ?? item.value.warrantyDetails,
+      lifetimeWarranty: editForm.value.lifetimeWarranty ?? item.value.lifetimeWarranty,
+      insured: editForm.value.insured ?? item.value.insured,
+      fields: editForm.value.fields ?? item.value.fields,
+      archived: item.value.archived,
+      assetId: item.value.assetId,
+      soldTime: item.value.soldTime,
+      soldTo: item.value.soldTo,
+      soldPrice: item.value.soldPrice,
+      soldNotes: item.value.soldNotes,
+      syncChildItemsLocations: item.value.syncChildItemsLocations,
+    };
+
+    const resp = await api.items.update(item.value.id, updateData);
+    if (resp.data) {
+      item.value = resp.data;
+      toast.success("Сохранено");
+    }
+  } catch {
+    toast.error("Ошибка сохранения");
+  } finally {
+    editingSection.value = null;
+    editForm.value = {};
+  }
+}
+
+// Location options for edit
+const allLocations = ref<LocationOutCount[]>([]);
+async function loadLocationsForEdit() {
+  const resp = await api.locations.getAll();
+  if (resp.data) allLocations.value = resp.data;
+}
+
 // Format date helper
 function formatDate(date: Date | string | undefined): string {
   if (!date) return "\u2014";
@@ -141,25 +209,89 @@ function formatDate(date: Date | string | undefined): string {
         </div>
       </div>
 
-      <ItemDetailSection title="Детали" collapsible>
-        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <div v-if="item.manufacturer">
-            <dt class="text-muted-foreground text-xs">Производитель</dt>
-            <dd>{{ item.manufacturer }}</dd>
+      <ItemDetailSection
+        title="Детали"
+        collapsible
+        editable
+        :editing="editingSection === 'details'"
+        @update:editing="(v) => v ? (startEdit('details'), loadLocationsForEdit()) : cancelEdit()"
+        @save="saveEdit"
+        @cancel="cancelEdit"
+      >
+        <template v-if="editingSection === 'details'">
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-muted-foreground">Название</label>
+              <input
+                v-model="editForm.name"
+                class="w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">Описание</label>
+              <Textarea v-model="editForm.description" rows="2" />
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">Место</label>
+              <select
+                :value="editForm.location?.id"
+                class="w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                @change="editForm.location = { id: ($event.target as HTMLSelectElement).value, name: '', description: '', createdAt: '', updatedAt: '' }"
+              >
+                <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
+                  {{ loc.name }}
+                </option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-muted-foreground">Производитель</label>
+                <input
+                  v-model="editForm.manufacturer"
+                  class="w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-muted-foreground">Модель</label>
+                <input
+                  v-model="editForm.modelNumber"
+                  class="w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">Серийный номер</label>
+              <input
+                v-model="editForm.serialNumber"
+                class="w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono text-xs"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">Количество</label>
+              <QuantityStepper :quantity="editForm.quantity ?? 1" @update="editForm.quantity = $event" />
+            </div>
           </div>
-          <div v-if="item.modelNumber">
-            <dt class="text-muted-foreground text-xs">Модель</dt>
-            <dd>{{ item.modelNumber }}</dd>
-          </div>
-          <div v-if="item.serialNumber">
-            <dt class="text-muted-foreground text-xs">Серийный номер</dt>
-            <dd class="font-mono text-xs">{{ item.serialNumber }}</dd>
-          </div>
-          <div v-if="item.assetId && item.assetId !== '0'">
-            <dt class="text-muted-foreground text-xs">Asset ID</dt>
-            <dd class="font-mono text-xs">{{ item.assetId }}</dd>
-          </div>
-        </dl>
+        </template>
+        <template v-else>
+          <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div v-if="item.manufacturer">
+              <dt class="text-muted-foreground text-xs">Производитель</dt>
+              <dd>{{ item.manufacturer }}</dd>
+            </div>
+            <div v-if="item.modelNumber">
+              <dt class="text-muted-foreground text-xs">Модель</dt>
+              <dd>{{ item.modelNumber }}</dd>
+            </div>
+            <div v-if="item.serialNumber">
+              <dt class="text-muted-foreground text-xs">Серийный номер</dt>
+              <dd class="font-mono text-xs">{{ item.serialNumber }}</dd>
+            </div>
+            <div v-if="item.assetId && item.assetId !== '0'">
+              <dt class="text-muted-foreground text-xs">Asset ID</dt>
+              <dd class="font-mono text-xs">{{ item.assetId }}</dd>
+            </div>
+          </dl>
+        </template>
       </ItemDetailSection>
 
       <ItemDetailSection title="Покупка" collapsible>
@@ -190,9 +322,22 @@ function formatDate(date: Date | string | undefined): string {
         <p v-if="item.warrantyDetails" class="text-sm text-muted-foreground mt-2">{{ item.warrantyDetails }}</p>
       </ItemDetailSection>
 
-      <ItemDetailSection title="Заметки" collapsible>
-        <p v-if="item.notes" class="text-sm whitespace-pre-wrap">{{ item.notes }}</p>
-        <p v-else class="text-sm text-muted-foreground">Нет заметок</p>
+      <ItemDetailSection
+        title="Заметки"
+        collapsible
+        editable
+        :editing="editingSection === 'notes'"
+        @update:editing="(v) => v ? startEdit('notes') : cancelEdit()"
+        @save="saveEdit"
+        @cancel="cancelEdit"
+      >
+        <template v-if="editingSection === 'notes'">
+          <Textarea v-model="editForm.notes" rows="5" placeholder="Заметки..." />
+        </template>
+        <template v-else>
+          <p v-if="item.notes" class="text-sm whitespace-pre-wrap">{{ item.notes }}</p>
+          <p v-else class="text-sm text-muted-foreground">Нет заметок</p>
+        </template>
       </ItemDetailSection>
 
       <ItemDetailSection v-if="item.attachments?.length" title="Файлы" collapsible>
