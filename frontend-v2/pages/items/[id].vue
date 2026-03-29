@@ -215,7 +215,7 @@ function formatDate(date: Date | string | undefined): string {
         collapsible
         editable
         :editing="editingSection === 'details'"
-        @update:editing="(v) => v ? (startEdit('details'), loadLocationsForEdit()) : cancelEdit()"
+        @update:editing="(v: boolean) => v ? (startEdit('details'), loadLocationsForEdit()) : cancelEdit()"
         @save="saveEdit"
         @cancel="cancelEdit"
       >
@@ -328,7 +328,7 @@ function formatDate(date: Date | string | undefined): string {
         collapsible
         editable
         :editing="editingSection === 'notes'"
-        @update:editing="(v) => v ? startEdit('notes') : cancelEdit()"
+        @update:editing="(v: boolean) => v ? startEdit('notes') : cancelEdit()"
         @save="saveEdit"
         @cancel="cancelEdit"
       >
