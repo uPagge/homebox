@@ -2,11 +2,11 @@ export function useAttachmentUrl() {
   const api = useUserApi();
 
   function attachmentUrl(itemId: string, attachmentId: string): string {
-    return api.items.authURL(`/api/v1/items/${itemId}/attachments/${attachmentId}`);
+    return api.items.authURL(`/items/${itemId}/attachments/${attachmentId}`);
   }
 
   function thumbnailUrl(itemId: string): string | null {
-    return api.items.authURL(`/api/v1/items/${itemId}/attachments/thumbnail`);
+    return api.items.authURL(`/items/${itemId}/attachments/thumbnail`);
   }
 
   return { attachmentUrl, thumbnailUrl };
