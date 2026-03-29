@@ -1,0 +1,268 @@
+<script setup lang="ts">
+import {
+  ArrowLeft, MapPin, Tag, Copy, Trash2,
+  Shield, ShieldAlert, ShieldCheck,
+  Paperclip, Star,
+} from "lucide-vue-next";
+import type { ItemOut } from "~~/lib/api/types/data-contracts";
+import { toast } from "vue-sonner";
+
+definePageMeta({ layout: "default" });
+
+const route = useRoute();
+const router = useRouter();
+const api = useUserApi();
+const itemId = computed(() => route.params.id as string);
+
+const item = ref<ItemOut | null>(null);
+const loading = ref(true);
+
+async function fetchItem() {
+  loading.value = true;
+  try {
+    const resp = await api.items.get(itemId.value);
+    if (resp.data) {
+      item.value = resp.data;
+    }
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(fetchItem);
+
+// Warranty color
+const warrantyStatus = computed(() => {
+  if (!item.value) return null;
+  if (item.value.lifetimeWarranty) return "lifetime";
+  if (!item.value.warrantyExpires) return null;
+  const expires = new Date(item.value.warrantyExpires);
+  if (expires.getFullYear() <= 1) return null;
+  const now = new Date();
+  const sixMonths = new Date();
+  sixMonths.setMonth(sixMonths.getMonth() + 6);
+  if (expires < now) return "expired";
+  if (expires < sixMonths) return "expiring";
+  return "valid";
+});
+
+const warrantyColor = computed(() => {
+  switch (warrantyStatus.value) {
+    case "valid":
+    case "lifetime":
+      return "text-green-600 dark:text-green-400";
+    case "expiring":
+      return "text-amber-600 dark:text-amber-400";
+    case "expired":
+      return "text-red-600 dark:text-red-400";
+    default:
+      return "text-muted-foreground";
+  }
+});
+
+// Primary photo
+const primaryPhoto = computed(() => {
+  if (!item.value) return null;
+  const photo = item.value.attachments?.find(a => a.primary && a.type === "photo");
+  if (photo) return `/api/v1/items/${item.value.id}/attachments/${photo.id}`;
+  if (item.value.imageId) return `/api/v1/items/${item.value.id}/attachments/${item.value.imageId}`;
+  return null;
+});
+
+// Quick actions
+async function duplicateItem() {
+  if (!item.value) return;
+  const resp = await api.items.duplicate(item.value.id);
+  if (resp.data) {
+    toast.success("Копия создана");
+    router.push(`/items/${resp.data.id}`);
+  }
+}
+
+const showDeleteDialog = ref(false);
+
+async function deleteItem() {
+  if (!item.value) return;
+  await api.items.delete(item.value.id);
+  toast.success("Удалено");
+  router.push("/items");
+}
+
+// Format date helper
+function formatDate(date: Date | string | undefined): string {
+  if (!date) return "\u2014";
+  const d = date instanceof Date ? date : new Date(date);
+  if (d.getFullYear() <= 1) return "\u2014";
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+}
+</script>
+
+<template>
+  <div class="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
+    <button
+      class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      @click="router.back()"
+    >
+      <ArrowLeft class="w-4 h-4" />
+      Назад
+    </button>
+
+    <div v-if="loading" class="space-y-4">
+      <Skeleton class="h-48 w-full rounded-xl" />
+      <Skeleton class="h-8 w-2/3 rounded" />
+      <Skeleton class="h-32 w-full rounded-xl" />
+    </div>
+
+    <template v-else-if="item">
+      <div v-if="primaryPhoto" class="rounded-xl overflow-hidden bg-muted/30 aspect-video">
+        <img :src="primaryPhoto" :alt="item.name" class="w-full h-full object-contain" />
+      </div>
+
+      <div>
+        <h1 class="text-xl font-semibold">{{ item.name }}</h1>
+        <p v-if="item.description" class="text-muted-foreground text-sm mt-1">{{ item.description }}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <div v-if="item.location" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs">
+          <MapPin class="w-3.5 h-3.5" />
+          {{ item.location.name }}
+        </div>
+        <div
+          v-for="tag in item.tags"
+          :key="tag.id"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs"
+        >
+          <Tag class="w-3.5 h-3.5" />
+          {{ tag.name }}
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs">
+          Кол-во: {{ item.quantity }}
+        </div>
+      </div>
+
+      <ItemDetailSection title="Детали" collapsible>
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div v-if="item.manufacturer">
+            <dt class="text-muted-foreground text-xs">Производитель</dt>
+            <dd>{{ item.manufacturer }}</dd>
+          </div>
+          <div v-if="item.modelNumber">
+            <dt class="text-muted-foreground text-xs">Модель</dt>
+            <dd>{{ item.modelNumber }}</dd>
+          </div>
+          <div v-if="item.serialNumber">
+            <dt class="text-muted-foreground text-xs">Серийный номер</dt>
+            <dd class="font-mono text-xs">{{ item.serialNumber }}</dd>
+          </div>
+          <div v-if="item.assetId && item.assetId !== '0'">
+            <dt class="text-muted-foreground text-xs">Asset ID</dt>
+            <dd class="font-mono text-xs">{{ item.assetId }}</dd>
+          </div>
+        </dl>
+      </ItemDetailSection>
+
+      <ItemDetailSection title="Покупка" collapsible>
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div>
+            <dt class="text-muted-foreground text-xs">Цена</dt>
+            <dd>{{ item.purchasePrice ? item.purchasePrice.toFixed(2) : '\u2014' }}</dd>
+          </div>
+          <div>
+            <dt class="text-muted-foreground text-xs">Дата покупки</dt>
+            <dd>{{ formatDate(item.purchaseTime) }}</dd>
+          </div>
+          <div v-if="item.purchaseFrom">
+            <dt class="text-muted-foreground text-xs">Куплено в</dt>
+            <dd>{{ item.purchaseFrom }}</dd>
+          </div>
+        </dl>
+      </ItemDetailSection>
+
+      <ItemDetailSection v-if="warrantyStatus" title="Гарантия" collapsible>
+        <div class="flex items-center gap-2 text-sm" :class="warrantyColor">
+          <ShieldCheck v-if="warrantyStatus === 'valid' || warrantyStatus === 'lifetime'" class="w-5 h-5" />
+          <ShieldAlert v-else-if="warrantyStatus === 'expiring'" class="w-5 h-5" />
+          <Shield v-else class="w-5 h-5" />
+          <span v-if="warrantyStatus === 'lifetime'">Пожизненная гарантия</span>
+          <span v-else>до {{ formatDate(item.warrantyExpires) }}</span>
+        </div>
+        <p v-if="item.warrantyDetails" class="text-sm text-muted-foreground mt-2">{{ item.warrantyDetails }}</p>
+      </ItemDetailSection>
+
+      <ItemDetailSection title="Заметки" collapsible>
+        <p v-if="item.notes" class="text-sm whitespace-pre-wrap">{{ item.notes }}</p>
+        <p v-else class="text-sm text-muted-foreground">Нет заметок</p>
+      </ItemDetailSection>
+
+      <ItemDetailSection v-if="item.attachments?.length" title="Файлы" collapsible>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <div
+            v-for="att in item.attachments"
+            :key="att.id"
+            class="relative aspect-square rounded-lg overflow-hidden bg-muted/30 border border-border"
+          >
+            <img
+              v-if="att.type === 'photo'"
+              :src="`/api/v1/items/${item.id}/attachments/${att.id}`"
+              :alt="att.title"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div v-else class="w-full h-full flex flex-col items-center justify-center p-2">
+              <Paperclip class="w-5 h-5 text-muted-foreground" />
+              <span class="text-[10px] text-muted-foreground mt-1 truncate w-full text-center">{{ att.title }}</span>
+            </div>
+            <div
+              v-if="att.primary"
+              class="absolute top-1 right-1 p-0.5 bg-amber-500 rounded-full"
+            >
+              <Star class="w-3 h-3 text-white fill-white" />
+            </div>
+          </div>
+        </div>
+      </ItemDetailSection>
+
+      <ItemDetailSection v-if="item.fields?.length" title="Поля" collapsible>
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div v-for="field in item.fields" :key="field.id">
+            <dt class="text-muted-foreground text-xs">{{ field.name }}</dt>
+            <dd>
+              <template v-if="field.type === 'boolean'">{{ field.booleanValue ? 'Да' : 'Нет' }}</template>
+              <template v-else-if="field.type === 'number'">{{ field.numberValue }}</template>
+              <template v-else>{{ field.textValue || '\u2014' }}</template>
+            </dd>
+          </div>
+        </dl>
+      </ItemDetailSection>
+
+      <div class="flex gap-2 pt-2">
+        <Button variant="outline" class="flex-1 gap-2" @click="duplicateItem">
+          <Copy class="w-4 h-4" />
+          Копировать
+        </Button>
+        <Button variant="outline" class="flex-1 gap-2 text-destructive hover:text-destructive" @click="showDeleteDialog = true">
+          <Trash2 class="w-4 h-4" />
+          Удалить
+        </Button>
+      </div>
+
+      <AlertDialog v-model:open="showDeleteDialog">
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить «{{ item.name }}»?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Вещь будет удалена навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90" @click="deleteItem">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </template>
+  </div>
+</template>
