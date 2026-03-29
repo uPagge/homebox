@@ -43,7 +43,7 @@ const collapsed = ref(false);
           </button>
           <button
             class="p-1.5 rounded-md text-muted-foreground hover:bg-accent transition-colors"
-            @click="emit('cancel'); emit('update:editing', false)"
+            @click="emit('cancel')"
           >
             <X class="w-4 h-4" />
           </button>
