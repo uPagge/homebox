@@ -382,6 +382,9 @@ function formatDate(date: Date | string | undefined): string {
         </dl>
       </ItemDetailSection>
 
+      <!-- Maintenance -->
+      <ItemMaintenanceSection :item-id="itemId" />
+
       <div class="flex gap-2 pt-2">
         <Button variant="outline" class="flex-1 gap-2" @click="duplicateItem">
           <Copy class="w-4 h-4" />
