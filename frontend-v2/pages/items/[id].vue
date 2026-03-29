@@ -12,6 +12,7 @@ definePageMeta({ layout: "default" });
 const route = useRoute();
 const router = useRouter();
 const api = useUserApi();
+const { attachmentUrl: makeAttachmentUrl, thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
 const itemId = computed(() => route.params.id as string);
 
 const item = ref<ItemOut | null>(null);
@@ -64,8 +65,8 @@ const warrantyColor = computed(() => {
 const primaryPhoto = computed(() => {
   if (!item.value) return null;
   const photo = item.value.attachments?.find(a => a.primary && a.type === "photo");
-  if (photo) return `/api/v1/items/${item.value.id}/attachments/${photo.id}`;
-  if (item.value.imageId) return `/api/v1/items/${item.value.id}/attachments/${item.value.imageId}`;
+  if (photo) return makeAttachmentUrl(item.value.id, photo.id);
+  if (item.value.imageId) return makeAttachmentUrl(item.value.id, item.value.imageId);
   return null;
 });
 
@@ -349,7 +350,7 @@ function formatDate(date: Date | string | undefined): string {
           >
             <img
               v-if="att.type === 'photo'"
-              :src="`/api/v1/items/${item.id}/attachments/${att.id}`"
+              :src="makeAttachmentUrl(item.id, att.id)"
               :alt="att.title"
               class="w-full h-full object-cover"
               loading="lazy"

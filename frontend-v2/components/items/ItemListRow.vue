@@ -10,9 +10,11 @@ const emit = defineEmits<{
   quantityUpdate: [id: string, quantity: number];
 }>();
 
+const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
+
 const thumbnailUrl = computed(() => {
   if (!props.item.imageId) return null;
-  return `/api/v1/items/${props.item.id}/attachments/thumbnail`;
+  return makeThumbnailUrl(props.item.id);
 });
 </script>
 
