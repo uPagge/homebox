@@ -40,6 +40,11 @@ watch(() => props.open, async (isOpen) => {
     ]);
     if (locResp.data) allLocations.value = locResp.data;
     if (tagResp.data) allTags.value = tagResp.data;
+  } else {
+    query.value = "";
+    searchItems.value = [];
+    searchLocations.value = [];
+    searchTags.value = [];
   }
 });
 
@@ -87,8 +92,10 @@ const hasResults = computed(() =>
   searchTags.value.length > 0
 );
 
-// Hotkey: Cmd+K / Ctrl+K
-useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", ctrl: true });
+// Hotkey: Ctrl+K for Windows/Linux
+useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", ctrl: true, meta: false });
+// Hotkey: Cmd+K for Mac
+useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", meta: true, ctrl: false });
 </script>
 
 <template>

@@ -156,6 +156,7 @@ export const [useDialog, provideDialogContext] = createContext<{
 type HotkeyKey = {
   shift?: boolean;
   ctrl?: boolean;
+  meta?: boolean;
   code: string;
 };
 
@@ -182,7 +183,8 @@ export function useDialogHotkey(dialogId: DialogID, key: HotkeyKey, getParams?: 
         event.type === "keydown" &&
         event.code === key.code &&
         (key.shift === undefined || event.shiftKey === key.shift) &&
-        (key.ctrl === undefined || event.ctrlKey === key.ctrl)
+        (key.ctrl === undefined || event.ctrlKey === key.ctrl) &&
+        (key.meta === undefined || event.metaKey === key.meta)
       ) {
         if (getParams) {
           openDialog(dialogId as RequiredDialogIDs, {
