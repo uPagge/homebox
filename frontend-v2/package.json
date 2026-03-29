@@ -33,6 +33,7 @@
     "postcss": "^8.5.8",
     "shadcn-nuxt": "^2.4.3",
     "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^6.0.2",
     "unplugin-icons": "^23.0.1",
     "vue-tsc": "^3.2.6"

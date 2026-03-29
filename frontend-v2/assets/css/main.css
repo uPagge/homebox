@@ -1,1 +1,68 @@
-/* Placeholder - will be filled in Task 3 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 9% 98%;
+    --foreground: 24 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 60 5% 96%;
+    --secondary-foreground: 24 10% 10%;
+    --muted: 60 5% 96%;
+    --muted-foreground: 25 5% 45%;
+    --accent: 60 5% 96%;
+    --accent-foreground: 24 10% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 26 83% 14%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --border: 24 6% 83%;
+    --input: 24 6% 83%;
+    --ring: 221 83% 53%;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 20 14% 4%;
+    --foreground: 60 9% 98%;
+    --card: 24 10% 10%;
+    --card-foreground: 60 9% 98%;
+    --popover: 24 10% 10%;
+    --popover-foreground: 60 9% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 12 6% 15%;
+    --secondary-foreground: 60 9% 98%;
+    --muted: 12 6% 15%;
+    --muted-foreground: 24 6% 83%;
+    --accent: 12 6% 15%;
+    --accent-foreground: 60 9% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 86% 97%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 48 97% 77%;
+    --success: 143 64% 24%;
+    --success-foreground: 142 77% 73%;
+    --border: 33 5% 15%;
+    --input: 33 5% 15%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
