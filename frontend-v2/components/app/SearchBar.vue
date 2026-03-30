@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Search } from "lucide-vue-next";
+import { useDialog, DialogID } from "@/components/ui/dialog-provider/utils";
 
 const { openDialog } = useDialog();
 

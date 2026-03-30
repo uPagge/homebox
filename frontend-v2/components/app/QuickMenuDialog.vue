@@ -5,6 +5,7 @@ import {
 } from "lucide-vue-next";
 import type { ItemSummary, LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
 import { useDebounceFn } from "@vueuse/core";
+import { useDialogHotkey, DialogID } from "@/components/ui/dialog-provider/utils";
 
 const props = defineProps<{
   open: boolean;

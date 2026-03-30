@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Package, MapPin, Tag } from "lucide-vue-next";
+import { useDialog, DialogID } from "@/components/ui/dialog-provider/utils";
 
 type CreateType = "item" | "location" | "label" | null;
 const showCreateMenu = ref(false);
