@@ -23,7 +23,8 @@
     "vaul-vue": "^0.4.1",
     "vue": "latest",
     "vue-router": "latest",
-    "vue-sonner": "^2.0.9"
+    "vue-sonner": "^2.0.9",
+    "@mmote/niimbluelib": "0.0.1-alpha.36"
   },
   "devDependencies": {
     "@iconify-json/mdi": "^1.2.3",

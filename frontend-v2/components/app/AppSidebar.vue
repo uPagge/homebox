@@ -5,27 +5,23 @@ import {
   MapPin,
   Tag,
   Wrench,
-  Printer,
-  BarChart3,
-  Download,
   Settings,
+  Plus,
 } from "lucide-vue-next";
 
 const route = useRoute();
+const emit = defineEmits<{ create: [] }>();
 
 const mainNav = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/items", icon: Package, label: "Items" },
-  { to: "/locations", icon: MapPin, label: "Locations" },
-  { to: "/labels", icon: Tag, label: "Labels" },
-  { to: "/maintenance", icon: Wrench, label: "Maintenance" },
-  { to: "/print", icon: Printer, label: "Print Labels" },
+  { to: "/", icon: LayoutDashboard, label: "Главная" },
+  { to: "/items", icon: Package, label: "Предметы" },
+  { to: "/locations", icon: MapPin, label: "Локации" },
+  { to: "/labels", icon: Tag, label: "Теги" },
+  { to: "/maintenance", icon: Wrench, label: "Обслуживание" },
 ];
 
 const secondaryNav = [
-  { to: "/reports", icon: BarChart3, label: "Reports" },
-  { to: "/import", icon: Download, label: "Import/Export" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/settings", icon: Settings, label: "Настройки" },
 ];
 
 function isActive(to: string) {
@@ -45,6 +41,17 @@ function isActive(to: string) {
 
     <div class="px-3 py-3">
       <slot name="search" />
+    </div>
+
+    <!-- Create button -->
+    <div class="px-3 pb-3">
+      <button
+        class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        @click="emit('create')"
+      >
+        <Plus class="w-4 h-4" />
+        Создать
+      </button>
     </div>
 
     <nav class="flex-1 px-2 space-y-0.5 overflow-y-auto">

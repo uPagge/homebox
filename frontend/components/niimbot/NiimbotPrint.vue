@@ -33,6 +33,10 @@
   type LabelVariant = "full" | "qr";
   const labelVariant = ref<LabelVariant>("full");
 
+  // --- Copies ---
+  const LS_COPIES_KEY = "niimbot_copies";
+  const copies = ref(1);
+
   // --- Tape size ---
   const selectedPresetIndex = ref(-1);
   const customWidth = ref(50);
@@ -50,6 +54,8 @@
       customWidth.value = saved.width;
       customHeight.value = saved.height;
     }
+    const savedCopies = parseInt(localStorage.getItem(LS_COPIES_KEY) ?? "", 10);
+    if (savedCopies >= 1 && savedCopies <= 99) copies.value = savedCopies;
   });
 
   function getCurrentTapeSize(): TapeSize {
@@ -86,9 +92,10 @@
     try {
       const tapeSize = getCurrentTapeSize();
       saveTapeSize(tapeSize);
+      localStorage.setItem(LS_COPIES_KEY, String(copies.value));
 
       const url = getLabelImageUrl();
-      await printImage(url, tapeSize);
+      await printImage(url, tapeSize, copies.value);
       toast.success(t("components.niimbot.print_success"));
     } catch (e) {
       console.error("Niimbot: print error", e);
@@ -178,6 +185,18 @@
         placeholder="H"
       />
       <span class="text-sm text-muted-foreground">mm</span>
+    </div>
+
+    <!-- Copies -->
+    <div class="flex items-center gap-2">
+      <label class="text-sm">{{ $t("components.niimbot.copies") }}:</label>
+      <input
+        v-model.number="copies"
+        type="number"
+        min="1"
+        max="99"
+        class="w-16 rounded border bg-background px-2 py-1 text-sm"
+      />
     </div>
 
     <!-- Print button -->

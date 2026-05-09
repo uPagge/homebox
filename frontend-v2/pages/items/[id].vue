@@ -24,7 +24,11 @@ async function fetchItem() {
     const resp = await api.items.get(itemId.value);
     if (resp.data) {
       item.value = resp.data;
+    } else {
+      toast.error(`API: status ${resp.status}, no data`);
     }
+  } catch (e) {
+    toast.error(`fetchItem error: ${e instanceof Error ? e.message : String(e)}`);
   } finally {
     loading.value = false;
   }
@@ -88,6 +92,13 @@ async function deleteItem() {
   toast.success("Удалено");
   router.push("/items");
 }
+
+// Attachments display limit
+const showAllAttachments = ref(false);
+const visibleAttachments = computed(() => {
+  if (!item.value?.attachments) return [];
+  return showAllAttachments.value ? item.value.attachments : item.value.attachments.slice(0, 4);
+});
 
 // === Inline Edit State ===
 const editingSection = ref<string | null>(null);
@@ -344,27 +355,16 @@ function formatDate(date: Date | string | undefined): string {
       <ItemDetailSection v-if="item.attachments?.length" title="Файлы" collapsible>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
           <div
-            v-for="att in item.attachments"
+            v-for="att in visibleAttachments"
             :key="att.id"
             class="relative aspect-square rounded-lg overflow-hidden bg-muted/30 border border-border"
           >
             <img
-              v-if="att.type === 'photo'"
-              :src="makeAttachmentUrl(item.id, att.id)"
-              :alt="att.title"
+              src="https://placehold.co/64x64/png"
               class="w-full h-full object-cover"
               loading="lazy"
+              decoding="async"
             />
-            <div v-else class="w-full h-full flex flex-col items-center justify-center p-2">
-              <Paperclip class="w-5 h-5 text-muted-foreground" />
-              <span class="text-[10px] text-muted-foreground mt-1 truncate w-full text-center">{{ att.title }}</span>
-            </div>
-            <div
-              v-if="att.primary"
-              class="absolute top-1 right-1 p-0.5 bg-amber-500 rounded-full"
-            >
-              <Star class="w-3 h-3 text-white fill-white" />
-            </div>
           </div>
         </div>
       </ItemDetailSection>
@@ -384,6 +384,9 @@ function formatDate(date: Date | string | undefined): string {
 
       <!-- Maintenance -->
       <ItemMaintenanceSection :item-id="itemId" />
+
+      <!-- Niimbot Print -->
+      <NiimbotPrintSection type="item" :id="itemId" />
 
       <div class="flex gap-2 pt-2">
         <Button variant="outline" class="flex-1 gap-2" @click="duplicateItem">

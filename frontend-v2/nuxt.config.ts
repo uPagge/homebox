@@ -21,6 +21,7 @@ export default defineNuxtConfig({
     { path: "~/components/locations", pathPrefix: false },
     { path: "~/components/labels", pathPrefix: false },
     { path: "~/components/maintenance", pathPrefix: false },
+    { path: "~/components/niimbot", pathPrefix: false },
     "~/components/ui",
   ],
 
@@ -38,6 +39,7 @@ export default defineNuxtConfig({
       },
     },
   },
+
 
   css: ["~/assets/css/main.css"],
 

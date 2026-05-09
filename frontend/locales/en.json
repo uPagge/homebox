@@ -392,6 +392,7 @@
       "label_qr": "QR code only",
       "tape": "Tape",
       "custom": "Custom...",
+      "copies": "Copies",
       "print": "Print to Niimbot",
       "printing": "Printing {progress}%",
       "print_success": "Label sent to printer",

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@mmote/niimbluelib':
+        specifier: 0.0.1-alpha.36
+        version: 0.0.1-alpha.36
       '@tanstack/vue-table':
         specifier: ^8.21.3
         version: 8.21.3(vue@3.5.31(typescript@6.0.2))
@@ -225,6 +228,14 @@ packages:
         optional: true
       commander:
         optional: true
+
+  '@capacitor-community/bluetooth-le@7.3.2':
+    resolution: {integrity: sha512-7dgtglFXGmyS849XtIZ62iA997aE3yqNsq7XsC8yjR8dqe/agh852+nW1Zk/8QlG58dPu/K5fxVzlWZvZFb80g==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
+
+  '@capacitor/core@7.6.1':
+    resolution: {integrity: sha512-nsNouCMxgYenyemy20sZwZYMtFi93LSZVWm2KqHTYIPIDgwx24+PzwHIdRQBZdK7hpvD5jQEhWuo/QyLLnAyBQ==}
 
   '@clack/core@1.1.0':
     resolution: {integrity: sha512-SVcm4Dqm2ukn64/8Gub2wnlA5nS2iWJyCkdNHcvNHPIeBTGojpdJ+9cZKwLfmqy7irD4N5qLteSilJlE0WLAtA==}
@@ -493,6 +504,9 @@ packages:
     resolution: {integrity: sha512-uwPAhccfFJlsfCxMYTwOdVfOz3xqyj8xYL3zJj8f0pb30tLohnnFPhLuqp4/qoEz8sNxe4SESZedcBojRefIzg==}
     engines: {node: '>=18'}
     hasBin: true
+
+  '@mmote/niimbluelib@0.0.1-alpha.36':
+    resolution: {integrity: sha512-ZJOllxaZkL4K47uZCotUzwsG2l9Q1IyC3CZ2PZ7pt/67mH63TeV/o2h2VODJGDjA+jQmT8p+JmPVV/v3nIbtWA==}
 
   '@napi-rs/wasm-runtime@1.1.2':
     resolution: {integrity: sha512-sNXv5oLJ7ob93xkZ1XnxisYhGYXfaG9f65/ZgYuAu3qt7b3NadcOEhLvx28hv31PgX8SZJRYrAIPQilQmFpLVw==}
@@ -1669,6 +1683,9 @@ packages:
     resolution: {integrity: sha512-cbdCP0PGOBq0ASG+sjnKIoYkWMKhhz+F/h9pRexUdX2Hd38+WOlBkRKlqkGOSm0YQpcFMQBJeK4WspUAkwsEdg==}
     engines: {node: '>=20.19.0'}
 
+  async-mutex@0.5.0:
+    resolution: {integrity: sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==}
+
   async-sema@3.1.1:
     resolution: {integrity: sha512-tLRNUXati5MFePdAk8dw7Qt7DpxPB60ofAgn8WRhW6a2rcimZnYBP9oxHiv0OHy+Wz7kPMG+t4LGdt31+4EmGg==}
 
@@ -2256,6 +2273,9 @@ packages:
   event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
     engines: {node: '>=6'}
+
+  eventemitter3@5.0.4:
+    resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
 
   events-universal@1.0.1:
     resolution: {integrity: sha512-LUd5euvbMLpwOF8m6ivPCbhQeSiYVNb8Vs0fQ8QjXo0JTkEHpz8pxdQf0gStltaPpw0Cca8b39KxvK9cfKRiAw==}
@@ -4376,6 +4396,15 @@ snapshots:
       cac: 6.7.14
       citty: 0.2.1
 
+  '@capacitor-community/bluetooth-le@7.3.2(@capacitor/core@7.6.1)':
+    dependencies:
+      '@capacitor/core': 7.6.1
+      '@types/web-bluetooth': 0.0.20
+
+  '@capacitor/core@7.6.1':
+    dependencies:
+      tslib: 2.8.1
+
   '@clack/core@1.1.0':
     dependencies:
       sisteransi: 1.0.5
@@ -4611,6 +4640,14 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@mmote/niimbluelib@0.0.1-alpha.36':
+    dependencies:
+      '@capacitor-community/bluetooth-le': 7.3.2(@capacitor/core@7.6.1)
+      '@capacitor/core': 7.6.1
+      async-mutex: 0.5.0
+      crc-32: 1.2.2
+      eventemitter3: 5.0.4
 
   '@napi-rs/wasm-runtime@1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
@@ -5788,6 +5825,10 @@ snapshots:
       '@babel/parser': 7.29.2
       ast-kit: 2.2.0
 
+  async-mutex@0.5.0:
+    dependencies:
+      tslib: 2.8.1
+
   async-sema@3.1.1: {}
 
   async@3.2.6: {}
@@ -6321,6 +6362,8 @@ snapshots:
   etag@1.8.1: {}
 
   event-target-shim@5.0.1: {}
+
+  eventemitter3@5.0.4: {}
 
   events-universal@1.0.1:
     dependencies:

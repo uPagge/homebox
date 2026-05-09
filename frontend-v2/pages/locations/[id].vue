@@ -324,6 +324,9 @@ watch(locationId, () => {
       </section>
     </template>
 
+    <!-- Niimbot Print -->
+    <NiimbotPrintSection v-if="location" type="location" :id="locationId" />
+
     <!-- Delete dialog -->
     <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">
       <AlertDialogContent>

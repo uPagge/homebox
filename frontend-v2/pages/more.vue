@@ -1,19 +1,16 @@
 <script setup lang="ts">
-import { BarChart3, Download, Settings, Tag, Wrench, Printer } from "lucide-vue-next";
+import { Download, Settings, Tag, Wrench } from "lucide-vue-next";
 
 const links = [
-  { to: "/labels", icon: Tag, label: "Labels" },
-  { to: "/maintenance", icon: Wrench, label: "Maintenance" },
-  { to: "/print", icon: Printer, label: "Print Labels" },
-  { to: "/reports", icon: BarChart3, label: "Reports" },
-  { to: "/import", icon: Download, label: "Import / Export" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/labels", icon: Tag, label: "Теги" },
+  { to: "/maintenance", icon: Wrench, label: "Обслуживание" },
+  { to: "/settings", icon: Settings, label: "Настройки" },
 ];
 </script>
 
 <template>
   <div class="p-4">
-    <h1 class="text-xl font-semibold mb-4">More</h1>
+    <h1 class="text-xl font-semibold mb-4">Ещё</h1>
     <div class="space-y-1">
       <NuxtLink
         v-for="link in links"

@@ -5,11 +5,7 @@ let niimbluelib: typeof import("@mmote/niimbluelib") | null = null;
 
 async function loadNiimbluelib() {
   if (!niimbluelib) {
-    try {
-      niimbluelib = await import("@mmote/niimbluelib");
-    } catch (e) {
-      throw new Error("Failed to load @mmote/niimbluelib. Check that the package is installed.");
-    }
+    niimbluelib = await import("@mmote/niimbluelib");
   }
   return niimbluelib;
 }
@@ -63,8 +59,7 @@ export function useNiimbot() {
           return parsed;
         }
         localStorage.removeItem(LS_TAPE_KEY);
-      } catch (e) {
-        console.warn("Niimbot: corrupted tape size in localStorage, resetting", e);
+      } catch {
         localStorage.removeItem(LS_TAPE_KEY);
       }
     }
@@ -87,7 +82,7 @@ export function useNiimbot() {
       client.value = null;
     });
 
-    newClient.on("printprogress", event => {
+    newClient.on("printprogress", (event: { pagePrintProgress: number }) => {
       printProgress.value = event.pagePrintProgress;
     });
 
@@ -98,8 +93,8 @@ export function useNiimbot() {
       deviceName.value = info.deviceName ?? "Niimbot";
       try {
         await newClient.fetchPrinterInfo();
-      } catch (infoErr) {
-        console.warn("Niimbot: connected but failed to fetch printer info", infoErr);
+      } catch {
+        // connected but failed to fetch printer info — non-fatal
       }
       return true;
     } catch (e) {
@@ -109,10 +104,9 @@ export function useNiimbot() {
       }
       try {
         await newClient.disconnect();
-      } catch (cleanupErr) {
-        console.warn("Niimbot: cleanup disconnect failed", cleanupErr);
+      } catch {
+        // cleanup disconnect failed — ignore
       }
-      // Real error — throw so caller can show it
       throw e;
     }
   }
@@ -121,8 +115,8 @@ export function useNiimbot() {
     if (client.value) {
       try {
         await client.value.disconnect();
-      } catch (e) {
-        console.warn("Niimbot: disconnect failed, cleaning up anyway", e);
+      } catch {
+        // disconnect failed — clean up anyway
       } finally {
         client.value = null;
         connected.value = false;
@@ -133,7 +127,7 @@ export function useNiimbot() {
 
   async function printImage(imageUrl: string, tapeSize: TapeSize, copies: number = 1): Promise<void> {
     if (!client.value) {
-      await connect(); // throws on real error, returns false on cancel
+      await connect();
       if (!client.value) return; // user cancelled
     }
 
@@ -145,11 +139,6 @@ export function useNiimbot() {
     const c = client.value;
 
     try {
-      // With printDirection "top" (no rotation):
-      //   canvas width  → cols (across printhead, must be multiple of 8)
-      //   canvas height → rows (feed direction)
-      // Printer does NOT auto-center. Canvas must span full printhead
-      // width, with label content centered within it.
       if (!Number.isFinite(tapeSize.width) || !Number.isFinite(tapeSize.height)) {
         throw new Error("Invalid tape dimensions");
       }
@@ -168,37 +157,34 @@ export function useNiimbot() {
 
       // Load and process label image
       const img = await loadImage(imageUrl);
-
-      // Crop whitespace from server-generated image to maximize content area
       const cropped = trimWhitespace(img);
 
-      // Auto-rotate: if image orientation doesn't match tape orientation, rotate 90°
+      // Auto-rotate if orientation mismatch
       const imgIsLandscape = cropped.width > cropped.height;
       const tapeIsLandscape = labelWidthPx > labelHeightPx;
       const srcImg = imgIsLandscape !== tapeIsLandscape ? rotateImage90(cropped) : cropped;
 
-      // First render label at tape dimensions
+      // Render label at tape dimensions
       const labelCanvas = resizeToCanvas(srcImg, labelWidthPx, labelHeightPx);
       applyThreshold(labelCanvas, 128);
 
-      // Then place centered on printhead-wide canvas
+      // Center on printhead-wide canvas
       const canvas = document.createElement("canvas");
       canvas.width = printheadPx;
       canvas.height = labelHeightPx;
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Failed to create canvas context for label rendering");
+      if (!ctx) throw new Error("Failed to create canvas context");
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       const offsetX = Math.floor((printheadPx - labelWidthPx) / 2);
       ctx.drawImage(labelCanvas, offsetX, 0);
 
-      // Encode for printer (no rotation for wide labels)
+      // Encode for printer
       const encoded = lib.ImageEncoder.encodeCanvas(canvas, "top");
 
-      // Stop heartbeat during printing (can interfere with protocol)
+      // Stop heartbeat during printing
       c.stopHeartbeat();
 
-      // Get print task type from printer or fallback to B1
       const taskType = c.getPrintTaskType?.() ?? "B1";
       const quantity = Math.max(1, Math.floor(copies));
       const printTask = c.abstraction.newPrintTask(taskType, {
@@ -214,14 +200,11 @@ export function useNiimbot() {
       await withTimeout(printTask.waitForFinished(), 30000, "Print timeout — printer may need attention");
 
       printProgress.value = 100;
-    } catch (e) {
-      console.error("Niimbot print failed:", e);
-      throw e;
     } finally {
       try {
         await withTimeout(c.abstraction?.printEnd(), 5000, "printEnd timeout");
-      } catch (endErr) {
-        console.warn("Niimbot: printEnd failed, printer may need power cycle", endErr);
+      } catch {
+        // printEnd failed — printer may need power cycle
       }
       c.startHeartbeat?.();
       printing.value = false;
@@ -263,8 +246,8 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 
 function trimWhitespace(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
   const tmpCanvas = document.createElement("canvas");
-  const w = img instanceof HTMLCanvasElement ? img.width : img.width;
-  const h = img instanceof HTMLCanvasElement ? img.height : img.height;
+  const w = img.width;
+  const h = img.height;
   tmpCanvas.width = w;
   tmpCanvas.height = h;
   const ctx = tmpCanvas.getContext("2d");
@@ -278,28 +261,24 @@ function trimWhitespace(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasEl
 
   let top = 0, bottom = h - 1, left = 0, right = w - 1;
 
-  // Find top
   topScan: for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (!isWhite((y * w + x) * 4)) { top = y; break topScan; }
     }
   }
 
-  // Find bottom
   bottomScan: for (let y = h - 1; y >= top; y--) {
     for (let x = 0; x < w; x++) {
       if (!isWhite((y * w + x) * 4)) { bottom = y; break bottomScan; }
     }
   }
 
-  // Find left
   leftScan: for (let x = 0; x < w; x++) {
     for (let y = top; y <= bottom; y++) {
       if (!isWhite((y * w + x) * 4)) { left = x; break leftScan; }
     }
   }
 
-  // Find right
   rightScan: for (let x = w - 1; x >= left; x--) {
     for (let y = top; y <= bottom; y++) {
       if (!isWhite((y * w + x) * 4)) { right = x; break rightScan; }
@@ -308,7 +287,7 @@ function trimWhitespace(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasEl
 
   const cropW = right - left + 1;
   const cropH = bottom - top + 1;
-  if (cropW <= 0 || cropH <= 0) return tmpCanvas; // all white, return as is
+  if (cropW <= 0 || cropH <= 0) return tmpCanvas;
 
   const result = document.createElement("canvas");
   result.width = cropW;
@@ -338,11 +317,9 @@ function resizeToCanvas(img: HTMLImageElement | HTMLCanvasElement, targetW: numb
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Failed to create canvas context");
 
-  // White background
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, targetW, targetH);
 
-  // Fit image preserving aspect ratio
   const scale = Math.min(targetW / img.width, targetH / img.height);
   const w = img.width * scale;
   const h = img.height * scale;

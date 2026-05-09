@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { Search, Camera, X } from "lucide-vue-next";
 import type { LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
 
 const props = defineProps<{
   open: boolean;
+  contextLocationId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -16,27 +18,70 @@ const api = useUserApi();
 const name = ref("");
 const locationId = ref("");
 const quantity = ref(1);
+const quantityMode = ref<"single" | "multiple">("single"); // single = 1 item with qty N, multiple = N separate items
 const description = ref("");
 const showMore = ref(false);
 const saving = ref(false);
 
-// Load locations for picker
+// Photo
+const photoFile = ref<File | null>(null);
+const photoPreview = ref<string | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+function onPhotoSelect(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  photoFile.value = file;
+  photoPreview.value = URL.createObjectURL(file);
+}
+
+function removePhoto() {
+  photoFile.value = null;
+  if (photoPreview.value) {
+    URL.revokeObjectURL(photoPreview.value);
+    photoPreview.value = null;
+  }
+  if (fileInput.value) fileInput.value.value = "";
+}
+
+// Locations with search
 const locations = ref<LocationOutCount[]>([]);
+const locationSearch = ref("");
+
 async function loadLocations() {
   const resp = await api.locations.getAll();
   if (resp.data) locations.value = resp.data;
 }
 
+const filteredLocations = computed(() => {
+  if (!locationSearch.value) return locations.value;
+  const q = locationSearch.value.toLowerCase();
+  return locations.value.filter(l => l.name.toLowerCase().includes(q));
+});
+
+const selectedLocationName = computed(() => {
+  const loc = locations.value.find(l => l.id === locationId.value);
+  return loc?.name ?? "";
+});
+
 watch(() => props.open, (isOpen) => {
-  if (isOpen) loadLocations();
+  if (isOpen) {
+    loadLocations();
+    locationSearch.value = "";
+  }
 });
 
 // Remember last used location
 const lastLocationId = useLocalStorage<string>("homebox-v2/last-location", "");
 
 watch(() => props.open, (isOpen) => {
-  if (isOpen && lastLocationId.value && !locationId.value) {
-    locationId.value = lastLocationId.value;
+  if (isOpen) {
+    // Priority: context location (from current page) > last used > empty
+    if (props.contextLocationId) {
+      locationId.value = props.contextLocationId;
+    } else if (lastLocationId.value && !locationId.value) {
+      locationId.value = lastLocationId.value;
+    }
   }
 });
 
@@ -45,29 +90,64 @@ async function save(addNext: boolean) {
 
   saving.value = true;
   try {
-    const resp = await api.items.create({
-      name: name.value,
-      locationId: locationId.value,
-      quantity: quantity.value,
-      description: description.value,
-      tagIds: [],
-    });
+    if (quantityMode.value === "multiple" && quantity.value > 1) {
+      // Create N separate items
+      for (let i = 0; i < quantity.value; i++) {
+        const resp = await api.items.create({
+          name: name.value,
+          locationId: locationId.value,
+          quantity: 1,
+          description: description.value,
+          tagIds: [],
+        });
+        if (resp.error) {
+          toast.error(`Не удалось создать вещь (${i + 1}/${quantity.value})`);
+          return;
+        }
+        // Attach photo only to first item
+        if (i === 0 && photoFile.value && resp.data) {
+          try {
+            await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, "photo", true);
+          } catch {
+            toast.error("Фото не загрузилось");
+          }
+        }
+      }
+      toast.success(`Создано ${quantity.value} × «${name.value}»`);
+    } else {
+      // Single item with quantity
+      const resp = await api.items.create({
+        name: name.value,
+        locationId: locationId.value,
+        quantity: quantity.value,
+        description: description.value,
+        tagIds: [],
+      });
 
-    if (resp.error) {
-      toast.error("Не удалось создать вещь");
-      return;
+      if (resp.error) {
+        toast.error("Не удалось создать вещь");
+        return;
+      }
+
+      if (photoFile.value && resp.data) {
+        try {
+          await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, "photo", true);
+        } catch {
+          toast.error("Вещь создана, но фото не загрузилось");
+        }
+      }
+      toast.success(`«${name.value}» добавлена`);
     }
 
     lastLocationId.value = locationId.value;
-    toast.success(`«${name.value}» добавлена`);
     emit("created");
 
     if (addNext) {
-      // Reset for next — keep location
       name.value = "";
       quantity.value = 1;
       description.value = "";
       showMore.value = false;
+      removePhoto();
     } else {
       resetAndClose();
     }
@@ -80,8 +160,11 @@ function resetAndClose() {
   name.value = "";
   locationId.value = lastLocationId.value;
   quantity.value = 1;
+  quantityMode.value = "single";
   description.value = "";
   showMore.value = false;
+  locationSearch.value = "";
+  removePhoto();
   emit("update:open", false);
 }
 </script>
@@ -93,7 +176,7 @@ function resetAndClose() {
         <DrawerTitle>Добавить вещь</DrawerTitle>
       </DrawerHeader>
 
-      <div class="px-4 pb-6 space-y-4">
+      <div class="px-4 pb-6 space-y-4 max-h-[70vh] overflow-y-auto">
         <!-- Name -->
         <div>
           <label class="text-sm font-medium" for="qa-name">Название</label>
@@ -108,19 +191,85 @@ function resetAndClose() {
           />
         </div>
 
-        <!-- Location -->
+        <!-- Location with search -->
         <div>
-          <label class="text-sm font-medium" for="qa-location">Место</label>
-          <select
-            id="qa-location"
-            v-model="locationId"
-            class="mt-1 w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          <label class="text-sm font-medium">Место</label>
+          <div class="mt-1 relative">
+            <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              v-model="locationSearch"
+              type="text"
+              class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              :placeholder="selectedLocationName || 'Поиск локации...'"
+            />
+          </div>
+          <div
+            v-if="locationSearch || !locationId"
+            class="mt-1 max-h-36 overflow-y-auto border border-border rounded-lg bg-card"
           >
-            <option value="" disabled>Выберите место</option>
-            <option v-for="loc in locations" :key="loc.id" :value="loc.id">
+            <button
+              v-for="loc in filteredLocations"
+              :key="loc.id"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+              :class="loc.id === locationId ? 'bg-primary/10 text-primary font-medium' : ''"
+              @click="locationId = loc.id; locationSearch = ''"
+            >
               {{ loc.name }}
-            </option>
-          </select>
+            </button>
+            <div
+              v-if="filteredLocations.length === 0"
+              class="px-3 py-2 text-sm text-muted-foreground"
+            >
+              Ничего не найдено
+            </div>
+          </div>
+          <div
+            v-else-if="locationId && selectedLocationName"
+            class="mt-1 flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-lg text-sm"
+          >
+            <span class="flex-1">{{ selectedLocationName }}</span>
+            <button
+              class="text-muted-foreground hover:text-foreground"
+              @click="locationId = ''"
+            >
+              <X class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Photo -->
+        <div>
+          <label class="text-sm font-medium">Фото</label>
+          <div class="mt-1">
+            <div v-if="photoPreview" class="relative inline-block">
+              <img
+                :src="photoPreview"
+                class="w-20 h-20 object-cover rounded-lg border border-border"
+              />
+              <button
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                @click="removePhoto"
+              >
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+            <button
+              v-else
+              class="flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
+              @click="fileInput?.click()"
+            >
+              <Camera class="w-4 h-4" />
+              Добавить фото
+            </button>
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              class="hidden"
+              @change="onPhotoSelect"
+            />
+          </div>
         </div>
 
         <!-- Quantity -->
@@ -128,6 +277,26 @@ function resetAndClose() {
           <label class="text-sm font-medium">Количество</label>
           <div class="mt-1">
             <QuantityStepper :quantity="quantity" @update="quantity = $event" />
+          </div>
+          <div v-if="quantity > 1" class="mt-2 flex gap-1">
+            <button
+              class="flex-1 px-2 py-1.5 text-xs rounded-md border transition-colors"
+              :class="quantityMode === 'single'
+                ? 'bg-primary/10 border-primary/30 text-primary font-medium'
+                : 'border-border text-muted-foreground hover:bg-accent'"
+              @click="quantityMode = 'single'"
+            >
+              1 вещь × {{ quantity }} шт
+            </button>
+            <button
+              class="flex-1 px-2 py-1.5 text-xs rounded-md border transition-colors"
+              :class="quantityMode === 'multiple'
+                ? 'bg-primary/10 border-primary/30 text-primary font-medium'
+                : 'border-border text-muted-foreground hover:bg-accent'"
+              @click="quantityMode = 'multiple'"
+            >
+              {{ quantity }} отдельных вещей
+            </button>
           </div>
         </div>
 
