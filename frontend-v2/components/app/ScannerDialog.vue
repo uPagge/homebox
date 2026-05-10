@@ -104,6 +104,17 @@ async function retry(): Promise<void> {
       <div v-else class="relative w-full h-full">
         <video ref="videoEl" class="w-full h-full object-cover" autoplay playsinline muted />
 
+        <!-- Scan region overlay (corner brackets + dimmed surround) -->
+        <div v-if="!scanner.result.value && !scanner.error.value" class="pointer-events-none absolute inset-0">
+          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 max-w-[70vw] max-h-[70vw]">
+            <div class="absolute inset-0 bg-transparent rounded-md" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);" />
+            <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl" />
+            <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr" />
+            <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl" />
+            <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-white rounded-br" />
+          </div>
+        </div>
+
         <!-- Result overlay -->
         <div v-if="scanner.result.value" class="absolute inset-x-0 bottom-0 p-4 bg-card/95 border-t flex flex-col gap-3">
           <p class="text-xs text-muted-foreground">Результат:</p>
