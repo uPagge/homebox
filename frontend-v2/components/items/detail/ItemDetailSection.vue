@@ -33,28 +33,31 @@ const collapsed = ref(false);
       </button>
       <span v-else class="text-sm font-medium">{{ title }}</span>
 
-      <div v-if="editable" class="flex items-center gap-1">
-        <template v-if="editing">
+      <div class="flex items-center gap-1">
+        <slot name="header-actions" />
+        <template v-if="editable">
+          <template v-if="editing">
+            <button
+              class="p-1.5 rounded-md text-primary hover:bg-primary/10 transition-colors"
+              @click="emit('save')"
+            >
+              <Check class="w-4 h-4" />
+            </button>
+            <button
+              class="p-1.5 rounded-md text-muted-foreground hover:bg-accent transition-colors"
+              @click="emit('cancel')"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </template>
           <button
-            class="p-1.5 rounded-md text-primary hover:bg-primary/10 transition-colors"
-            @click="emit('save')"
+            v-else
+            class="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            @click="emit('edit')"
           >
-            <Check class="w-4 h-4" />
-          </button>
-          <button
-            class="p-1.5 rounded-md text-muted-foreground hover:bg-accent transition-colors"
-            @click="emit('cancel')"
-          >
-            <X class="w-4 h-4" />
+            <Pencil class="w-4 h-4" />
           </button>
         </template>
-        <button
-          v-else
-          class="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          @click="emit('edit')"
-        >
-          <Pencil class="w-4 h-4" />
-        </button>
       </div>
     </div>
 
