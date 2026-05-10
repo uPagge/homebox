@@ -6,6 +6,7 @@ const props = defineProps<{
   item: ItemSummary;
   selectionMode?: boolean;
   selected?: boolean;
+  currentLocationId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -14,9 +15,21 @@ const emit = defineEmits<{
 }>();
 
 const { thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
+const tree = useLocationTree();
 
 const thumbnailUrl = computed(() => {
   return makeThumbnailUrl(props.item.id, props.item.thumbnailId || props.item.imageId);
+});
+
+const showPath = computed(() => {
+  if (!props.item.location) return false;
+  if (props.currentLocationId && props.currentLocationId === props.item.location.id) return false;
+  return true;
+});
+
+const pathString = computed(() => {
+  if (!props.item.location) return "";
+  return tree.getPathString(props.item.location.id) ?? props.item.location.name;
 });
 
 function handleClick(e: Event) {
@@ -64,10 +77,16 @@ function handleClick(e: Event) {
     <div class="flex-1 min-w-0">
       <h3 class="text-sm font-medium truncate">{{ item.name }}</h3>
       <div class="flex items-center gap-2 mt-0.5">
-        <div v-if="item.location" class="flex items-center gap-1 text-xs text-muted-foreground">
+        <NuxtLink
+          v-if="showPath && item.location"
+          :to="`/locations/${item.location.id}`"
+          :title="pathString"
+          class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors min-w-0"
+          @click.stop
+        >
           <MapPin class="w-3 h-3 shrink-0" />
-          <span class="truncate">{{ item.location.name }}</span>
-        </div>
+          <bdi class="truncate text-start" style="direction: rtl">{{ pathString }}</bdi>
+        </NuxtLink>
         <span
           v-for="tag in item.tags?.slice(0, 2)"
           :key="tag.id"
