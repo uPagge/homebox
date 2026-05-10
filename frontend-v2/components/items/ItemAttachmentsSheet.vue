@@ -45,6 +45,39 @@ async function onPhotoPick(e: Event) {
   if (photoInput.value) photoInput.value.value = "";
 }
 
+const fileInput = ref<HTMLInputElement | null>(null);
+const pendingFile = ref<{ file: File; type: AttachmentTypes } | null>(null);
+
+function guessType(file: File): AttachmentTypes {
+  return file.type.startsWith("image/") ? AttachmentTypes.Photo : AttachmentTypes.Attachment;
+}
+
+function onFilePick(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  pendingFile.value = { file, type: guessType(file) };
+  if (fileInput.value) fileInput.value.value = "";
+}
+
+async function confirmPendingUpload() {
+  if (!pendingFile.value) return;
+  const { file, type } = pendingFile.value;
+  await uploadFile(file, type);
+  pendingFile.value = null;
+}
+
+function cancelPendingUpload() {
+  pendingFile.value = null;
+}
+
+const typeOptions: { value: AttachmentTypes; label: string }[] = [
+  { value: AttachmentTypes.Photo, label: "Фото" },
+  { value: AttachmentTypes.Manual, label: "Инструкция" },
+  { value: AttachmentTypes.Warranty, label: "Гарантия" },
+  { value: AttachmentTypes.Receipt, label: "Чек" },
+  { value: AttachmentTypes.Attachment, label: "Файл" },
+];
+
 function iconForType(type: string) {
   switch (type) {
     case AttachmentTypes.Photo: return Image;
@@ -84,8 +117,9 @@ function labelForType(type: string): string {
             Фото
           </button>
           <button
-            disabled
-            class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground"
+            :disabled="uploading || pendingFile !== null"
+            class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm hover:bg-accent disabled:opacity-50 transition-colors"
+            @click="fileInput?.click()"
           >
             <Paperclip class="w-4 h-4" />
             Файл
@@ -100,6 +134,47 @@ function labelForType(type: string): string {
           class="hidden"
           @change="onPhotoPick"
         />
+        <input
+          ref="fileInput"
+          type="file"
+          class="hidden"
+          @change="onFilePick"
+        />
+
+        <div
+          v-if="pendingFile"
+          class="border border-primary/30 bg-primary/5 rounded-lg p-3 space-y-2"
+        >
+          <div class="flex items-center gap-2 text-sm">
+            <Paperclip class="w-4 h-4 shrink-0 text-muted-foreground" />
+            <span class="truncate flex-1">{{ pendingFile.file.name }}</span>
+          </div>
+          <div>
+            <label class="text-xs text-muted-foreground">Тип</label>
+            <Select v-model="pendingFile.type">
+              <SelectTrigger class="mt-1 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="opt in typeOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div class="flex gap-2">
+            <Button class="flex-1" :disabled="uploading" @click="confirmPendingUpload">
+              {{ uploading ? "Загружаем..." : "Загрузить" }}
+            </Button>
+            <Button variant="outline" :disabled="uploading" @click="cancelPendingUpload">
+              Отмена
+            </Button>
+          </div>
+        </div>
 
         <ul v-if="attachments.length" class="border border-border rounded-lg overflow-hidden divide-y divide-border">
           <li
