@@ -6,6 +6,7 @@ import { toast } from "vue-sonner";
 const props = defineProps<{
   open: boolean;
   contextLocationId?: string;
+  initialBarcode?: string;
 }>();
 
 const emit = defineEmits<{
@@ -82,6 +83,16 @@ watch(() => props.open, (isOpen) => {
     } else if (lastLocationId.value && !locationId.value) {
       locationId.value = lastLocationId.value;
     }
+  }
+});
+
+// When opened with a scanned barcode, prepend it to description and force-expand "Подробнее".
+// ItemCreate API has no dedicated barcode field — see scanner design doc Risks section.
+watch(() => props.open, (isOpen) => {
+  if (isOpen && props.initialBarcode) {
+    const prefix = `Штрихкод: ${props.initialBarcode}\n\n`;
+    description.value = prefix + (description.value ?? "");
+    showMore.value = true;
   }
 });
 
