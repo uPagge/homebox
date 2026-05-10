@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import {
   Package, MapPin, Tag, LayoutDashboard,
-  Wrench, Settings, Plus,
+  Wrench, Settings, Plus, ScanLine,
 } from "lucide-vue-next";
 import type { ItemSummary, LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
 import { useDebounceFn } from "@vueuse/core";
-import { useDialogHotkey, DialogID } from "@/components/ui/dialog-provider/utils";
+import { useDialogHotkey, DialogID, useDialog } from "@/components/ui/dialog-provider/utils";
 
 const props = defineProps<{
   open: boolean;
@@ -18,6 +18,7 @@ const emit = defineEmits<{
 
 const api = useUserApi();
 const router = useRouter();
+const { openDialog } = useDialog();
 
 const query = ref("");
 const searchItems = ref<ItemSummary[]>([]);
@@ -85,6 +86,11 @@ function go(path: string) {
 function createAction(type: "item" | "location" | "label") {
   emit("update:open", false);
   emit("create", type);
+}
+
+function openScanner(): void {
+  emit("update:open", false);
+  openDialog(DialogID.Scanner);
 }
 
 const hasResults = computed(() =>
@@ -199,6 +205,10 @@ useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", meta: true, ctrl: false });
         <CommandItem value="nav-settings" @select="go('/settings')">
           <Settings class="mr-2 h-4 w-4 text-muted-foreground" />
           <span>Настройки</span>
+        </CommandItem>
+        <CommandItem value="nav-scan" @select="openScanner">
+          <ScanLine class="mr-2 h-4 w-4 text-muted-foreground" />
+          <span>Сканировать</span>
         </CommandItem>
       </CommandGroup>
     </CommandList>
