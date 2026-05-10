@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { X, MapPin, Zap, Pause, Layers, Trash2 } from "lucide-vue-next";
+import { X, MapPin, Zap, Pause, Layers, Trash2, Search } from "lucide-vue-next";
 import { toast } from "vue-sonner";
-import type { ItemSummary } from "~~/lib/api/types/data-contracts";
+import type { ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { useScanner, type ScannerError } from "~/composables/use-scanner";
 import { parseHomeboxTarget } from "~~/lib/scanner/parse-homebox-url";
 
@@ -146,6 +146,29 @@ async function handleApplyQueue() {
     toast.error(`Перенесено ${result.ok}, ошибок ${result.failed.length}`);
   }
 }
+
+const showPicker = ref(false);
+const allLocations = ref<LocationOutCount[]>([]);
+const pickerSearch = ref("");
+
+watch(showPicker, async (open) => {
+  if (open && allLocations.value.length === 0) {
+    const resp = await api.locations.getAll();
+    if (resp.data) allLocations.value = resp.data;
+  }
+});
+
+const filteredLocations = computed(() => {
+  if (!pickerSearch.value) return allLocations.value;
+  const q = pickerSearch.value.toLowerCase();
+  return allLocations.value.filter(l => l.name.toLowerCase().includes(q));
+});
+
+function pickLocation(loc: LocationOutCount) {
+  session.setDestinationFromLocation(loc);
+  showPicker.value = false;
+  pickerSearch.value = "";
+}
 </script>
 
 <template>
@@ -192,7 +215,7 @@ async function handleApplyQueue() {
           <template v-if="session.destination.value">
             <button
               class="flex-1 text-left text-sm font-medium truncate hover:text-primary transition-colors"
-              @click="/* picker — Task 5 */"
+              @click="showPicker = true"
             >
               {{ session.destination.value.name }}
             </button>
@@ -287,4 +310,37 @@ async function handleApplyQueue() {
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
+
+  <Drawer v-model:open="showPicker">
+    <DrawerContent>
+      <DrawerHeader>
+        <DrawerTitle>Выбрать локацию</DrawerTitle>
+      </DrawerHeader>
+      <div class="px-4 pb-6 space-y-3">
+        <div class="relative">
+          <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+          <input
+            v-model="pickerSearch"
+            type="text"
+            class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Поиск локации..."
+          />
+        </div>
+        <div class="max-h-64 overflow-y-auto border border-border rounded-lg bg-card">
+          <button
+            v-for="loc in filteredLocations"
+            :key="loc.id"
+            class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+            @click="pickLocation(loc)"
+          >
+            {{ loc.name }}
+            <span class="text-xs text-muted-foreground ml-1">({{ loc.itemCount }})</span>
+          </button>
+          <div v-if="filteredLocations.length === 0" class="px-3 py-2 text-sm text-muted-foreground">
+            Ничего не найдено
+          </div>
+        </div>
+      </div>
+    </DrawerContent>
+  </Drawer>
 </template>
