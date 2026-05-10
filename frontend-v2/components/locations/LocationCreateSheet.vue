@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
+import { Lightbulb } from "lucide-vue-next";
 
 const props = defineProps<{
   open: boolean;
@@ -18,6 +19,17 @@ const name = ref("");
 const description = ref("");
 const selectedParentId = ref<string>(props.parentId ?? "");
 const saving = ref(false);
+
+const suggest = useLocationNameSuggest(name, selectedParentId);
+
+function applySuggestion() {
+  const s = suggest.value.suggestion;
+  if (!s) return;
+  name.value = s.name;
+  // Description textarea has id="loc-desc". DOM lookup avoids tangling with
+  // shadcn-vue's component-instance ref shape.
+  document.getElementById("loc-desc")?.focus();
+}
 
 // Load all locations for parent picker
 const allLocations = ref<LocationOutCount[]>([]);
@@ -88,6 +100,37 @@ function resetAndClose() {
             class="mt-1 w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             placeholder="Название локации"
           />
+        </div>
+
+        <!-- Auto-suggest hint -->
+        <div
+          v-if="suggest.suggestion"
+          class="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2"
+        >
+          <div class="flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Lightbulb class="w-3.5 h-3.5" />
+            <span v-if="suggest.parentName">Уже есть в «{{ suggest.parentName }}»:</span>
+            <span v-else>Уже создано:</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <span
+              v-for="loc in suggest.existing"
+              :key="loc.id"
+              class="px-2 py-0.5 bg-card border border-border rounded-md text-xs"
+            >
+              {{ loc.name }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <span class="text-xs text-muted-foreground">Предложение:</span>
+            <button
+              type="button"
+              class="px-2.5 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 transition-colors"
+              @click="applySuggestion"
+            >
+              {{ suggest.suggestion.name }}
+            </button>
+          </div>
         </div>
 
         <!-- Description -->
