@@ -7,7 +7,9 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tanstack/vue-table": "^8.21.3",
@@ -37,6 +39,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^6.0.2",
     "unplugin-icons": "^23.0.1",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.2.6"
   }
 }
