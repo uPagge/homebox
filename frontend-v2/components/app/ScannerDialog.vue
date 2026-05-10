@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { toast } from "vue-sonner";
+import { Flashlight, FlashlightOff } from "lucide-vue-next";
 import { useDialog, DialogID } from "@/components/ui/dialog-provider/utils";
 import { useScanner, type ScanResult } from "~/composables/use-scanner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -142,10 +143,19 @@ async function retry(): Promise<void> {
           </div>
         </div>
 
-        <!-- Top bar: close (visible during live state only) -->
+        <!-- Top bar: close + torch (visible during live state only) -->
         <div v-if="!scanner.result.value" class="absolute top-0 inset-x-0 p-4 flex justify-between bg-gradient-to-b from-black/60 to-transparent">
           <button class="text-white p-2" aria-label="Закрыть" @click="close">
             ✕
+          </button>
+          <button
+            v-if="scanner.hasTorch.value"
+            class="text-white p-2"
+            :class="{ 'text-yellow-400': scanner.torchOn.value }"
+            :aria-label="scanner.torchOn.value ? 'Выключить фонарик' : 'Включить фонарик'"
+            @click="scanner.toggleTorch()"
+          >
+            <component :is="scanner.torchOn.value ? Flashlight : FlashlightOff" class="w-5 h-5" />
           </button>
         </div>
       </div>
