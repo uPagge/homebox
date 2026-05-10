@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, LayoutGrid, List, Package } from "lucide-vue-next";
+import { Search, LayoutGrid, List, Package, ScanLine } from "lucide-vue-next";
 import { useDebounceFn } from "@vueuse/core";
 
 definePageMeta({ layout: "default" });
@@ -63,6 +63,7 @@ const showBatchTagAdd = ref(false);
 const showBatchTagRemove = ref(false);
 const showBatchDelete = ref(false);
 const showBatchDuplicate = ref(false);
+const showMoveScanner = ref(false);
 
 // Debounced search
 const searchInput = ref(filters.q);
@@ -98,6 +99,13 @@ onMounted(() => fetchItems());
         </p>
       </div>
       <div class="flex items-center gap-1">
+        <button
+          class="p-2 rounded-md text-muted-foreground hover:bg-accent transition-colors"
+          title="Сканер переноса"
+          @click="showMoveScanner = true"
+        >
+          <ScanLine class="w-4 h-4" />
+        </button>
         <button
           class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
           :class="selectionMode
@@ -264,6 +272,11 @@ onMounted(() => fetchItems());
       :items="selectedItems"
       @update:open="showBatchDuplicate = $event"
       @done="fetchItems(); exitSelectionMode()"
+    />
+    <MoveScannerSheet
+      :open="showMoveScanner"
+      @update:open="showMoveScanner = $event"
+      @done="fetchItems()"
     />
   </div>
 </template>
