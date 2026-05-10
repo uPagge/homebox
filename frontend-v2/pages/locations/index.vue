@@ -29,9 +29,9 @@ const filteredTree = computed(() => filterTree(tree.value, searchQuery.value));
 
 onMounted(() => refresh());
 
-function handleCreated() {
+function handleCreated(id: string) {
   showCreate.value = false;
-  refresh();
+  navigateTo(`/locations/${id}`);
 }
 </script>
 

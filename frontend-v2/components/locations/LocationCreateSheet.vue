@@ -9,7 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
-  created: [];
+  created: [id: string];
 }>();
 
 const api = useUserApi();
@@ -78,15 +78,16 @@ async function save() {
     }
 
     const resp = await api.locations.create(body);
-    if (resp.error) {
+    if (resp.error || !resp.data) {
       toast.error("Не удалось создать локацию");
       return;
     }
 
+    const newId = resp.data.id;
     toast.success(`«${name.value}» создана`);
     tree.invalidate();
     resetAndClose();
-    emit("created");
+    emit("created", newId);
   } finally {
     saving.value = false;
   }

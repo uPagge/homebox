@@ -141,10 +141,10 @@ async function confirmDelete() {
 // Create child location
 const showCreateChild = ref(false);
 
-function handleChildCreated() {
+function handleChildCreated(id: string) {
   showCreateChild.value = false;
   tree.invalidate();
-  fetchLocation();
+  router.push(`/locations/${id}`);
 }
 
 // Init

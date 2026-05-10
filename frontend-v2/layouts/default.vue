@@ -31,6 +31,11 @@ function onCreated() {
   activeCreate.value = null;
 }
 
+function onLocationCreated(id: string) {
+  activeCreate.value = null;
+  navigateTo(`/locations/${id}`);
+}
+
 function closeCreate(open: boolean) {
   if (!open) {
     activeCreate.value = null;
@@ -145,7 +150,7 @@ function onQuickMenuCreate(type: "item" | "location" | "label") {
       :open="activeCreate === 'location'"
       :parent-id="contextLocationId"
       @update:open="closeCreate"
-      @created="onCreated"
+      @created="onLocationCreated"
     />
     <LabelCreateSheet
       :open="activeCreate === 'label'"
