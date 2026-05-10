@@ -12,9 +12,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@mmote/niimbluelib": "0.0.1-alpha.36",
     "@tanstack/vue-table": "^8.21.3",
     "@vueuse/core": "^14.2.1",
     "@vueuse/nuxt": "^14.2.1",
+    "@zxing/library": "^0.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -25,8 +27,7 @@
     "vaul-vue": "^0.4.1",
     "vue": "latest",
     "vue-router": "latest",
-    "vue-sonner": "^2.0.9",
-    "@mmote/niimbluelib": "0.0.1-alpha.36"
+    "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
     "@iconify-json/mdi": "^1.2.3",
