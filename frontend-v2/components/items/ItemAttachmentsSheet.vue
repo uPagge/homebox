@@ -78,6 +78,52 @@ const typeOptions: { value: AttachmentTypes; label: string }[] = [
   { value: AttachmentTypes.Attachment, label: "Файл" },
 ];
 
+const expandedId = ref<string | null>(null);
+const savingId = ref<string | null>(null);
+const editForm = reactive({
+  title: "",
+  type: AttachmentTypes.Attachment as AttachmentTypes,
+  primary: false,
+});
+
+function toggleExpand(att: ItemAttachment) {
+  if (expandedId.value === att.id) {
+    expandedId.value = null;
+    return;
+  }
+  expandedId.value = att.id;
+  editForm.title = att.title;
+  editForm.type = att.type as AttachmentTypes;
+  editForm.primary = att.primary;
+}
+
+watch(() => editForm.type, (t) => {
+  if (t !== AttachmentTypes.Photo) editForm.primary = false;
+});
+
+async function saveEdit(att: ItemAttachment) {
+  if (!editForm.title.trim()) return;
+  savingId.value = att.id;
+  try {
+    const resp = await api.items.attachments.update(props.itemId, att.id, {
+      title: editForm.title,
+      type: editForm.type,
+      primary: editForm.primary,
+    });
+    if (resp.error || !resp.data) {
+      toast.error("Не удалось сохранить");
+      return;
+    }
+    emit("updated", resp.data);
+    expandedId.value = null;
+    toast.success("Сохранено");
+  } catch {
+    toast.error("Не удалось сохранить");
+  } finally {
+    savingId.value = null;
+  }
+}
+
 function iconForType(type: string) {
   switch (type) {
     case AttachmentTypes.Photo: return Image;
@@ -177,26 +223,76 @@ function labelForType(type: string): string {
         </div>
 
         <ul v-if="attachments.length" class="border border-border rounded-lg overflow-hidden divide-y divide-border">
-          <li
-            v-for="att in attachments"
-            :key="att.id"
-            class="flex items-center gap-3 p-3 bg-card"
-          >
-            <div class="w-10 h-10 shrink-0 rounded-md bg-muted/30 border border-border flex items-center justify-center overflow-hidden">
-              <img
-                v-if="att.type === 'photo' && att.thumbnail?.id"
-                :src="makeAttachmentUrl(itemId, att.thumbnail.id)"
-                :alt="att.title"
-                class="w-full h-full object-cover"
-              />
-              <component :is="iconForType(att.type)" v-else class="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5">
-                <span class="text-sm truncate">{{ att.title }}</span>
-                <Star v-if="att.primary" class="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+          <li :key="att.id" class="bg-card" v-for="att in attachments">
+            <button
+              class="w-full flex items-center gap-3 p-3 text-left hover:bg-accent/40 transition-colors"
+              @click="toggleExpand(att)"
+            >
+              <div class="w-10 h-10 shrink-0 rounded-md bg-muted/30 border border-border flex items-center justify-center overflow-hidden">
+                <img
+                  v-if="att.type === 'photo' && att.thumbnail?.id"
+                  :src="makeAttachmentUrl(itemId, att.thumbnail.id)"
+                  :alt="att.title"
+                  class="w-full h-full object-cover"
+                />
+                <component :is="iconForType(att.type)" v-else class="w-5 h-5 text-muted-foreground" />
               </div>
-              <span class="text-xs text-muted-foreground">{{ labelForType(att.type) }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm truncate">{{ att.title }}</span>
+                  <Star v-if="att.primary" class="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                </div>
+                <span class="text-xs text-muted-foreground">{{ labelForType(att.type) }}</span>
+              </div>
+            </button>
+
+            <div v-if="expandedId === att.id" class="px-3 pb-3 pt-3 space-y-3 border-t border-border">
+              <div>
+                <label class="text-xs text-muted-foreground">Название</label>
+                <Input v-model="editForm.title" class="mt-1 h-9" />
+              </div>
+              <div>
+                <label class="text-xs text-muted-foreground">Тип</label>
+                <Select v-model="editForm.type">
+                  <SelectTrigger class="mt-1 h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="opt in typeOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="text-xs">Главное фото</label>
+                  <p
+                    v-if="editForm.type !== AttachmentTypes.Photo"
+                    class="text-[10px] text-muted-foreground"
+                  >
+                    доступно только для фото
+                  </p>
+                </div>
+                <Switch
+                  :model-value="editForm.primary"
+                  :disabled="editForm.type !== AttachmentTypes.Photo"
+                  @update:model-value="editForm.primary = $event"
+                />
+              </div>
+
+              <div class="flex gap-2">
+                <Button
+                  class="flex-1"
+                  :disabled="!editForm.title.trim() || savingId === att.id"
+                  @click="saveEdit(att)"
+                >
+                  {{ savingId === att.id ? "Сохраняем..." : "Сохранить" }}
+                </Button>
+                <Button variant="outline" :disabled="savingId === att.id" @click="expandedId = null">
+                  Отмена
+                </Button>
+              </div>
             </div>
           </li>
         </ul>
