@@ -32,6 +32,15 @@ watch(isOpen, async (val) => {
   }
 });
 
+// Auto-navigate without showing the result panel when the QR is a known
+// homebox URL — there's nothing to confirm. Barcodes and unrecognised QR
+// codes still go through the result panel so the user can pick an action.
+watch(() => scanner.result.value, (r) => {
+  if (r && r.format === "QR_CODE" && parseHomeboxUrl(r.text)) {
+    handleResult(r);
+  }
+});
+
 onUnmounted(() => {
   scanner.stop();
 });
