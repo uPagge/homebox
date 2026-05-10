@@ -126,6 +126,22 @@ export function useLocationTree() {
     return out;
   }
 
+  // Returns direct children of `parentId`. Pass null/empty to get root-level siblings.
+  function getSiblings(parentId: string | null | undefined): { id: string; name: string }[] {
+    const target = parentId || null;
+    const out: { id: string; name: string }[] = [];
+    for (const node of byId.value.values()) {
+      if (node.parentId === target) {
+        out.push({ id: node.id, name: node.name });
+      }
+    }
+    return out;
+  }
+
+  function getName(id: string | null | undefined): string | null {
+    return getNode(id)?.name ?? null;
+  }
+
   // Resolves once the tree has been fetched (success or failure). Lets callers
   // wait before computing path / descendants on first render.
   function ready(): Promise<void> {
@@ -145,6 +161,8 @@ export function useLocationTree() {
     getPathString,
     hasChildren,
     getDescendantIds,
+    getSiblings,
+    getName,
     ready,
     invalidate,
   };
