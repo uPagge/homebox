@@ -482,6 +482,10 @@ function formatDate(date: Date | string | undefined): string {
         :attachments="item.attachments ?? []"
         @update:open="showAttachmentsSheet = $event"
         @updated="(updated) => { item = updated; }"
+        @deleted="(id) => {
+          if (!item) return;
+          item.attachments = item.attachments.filter(a => a.id !== id);
+        }"
       />
     </template>
   </div>

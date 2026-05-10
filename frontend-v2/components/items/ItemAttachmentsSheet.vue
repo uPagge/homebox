@@ -13,6 +13,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:open": [value: boolean];
   updated: [item: ItemOut];
+  deleted: [attachmentId: string];
 }>();
 
 const api = useUserApi();
@@ -121,6 +122,30 @@ async function saveEdit(att: ItemAttachment) {
     toast.error("Не удалось сохранить");
   } finally {
     savingId.value = null;
+  }
+}
+
+const deletingId = ref<string | null>(null);
+const deleteConfirmFor = ref<ItemAttachment | null>(null);
+
+async function confirmDelete() {
+  const target = deleteConfirmFor.value;
+  if (!target) return;
+  deletingId.value = target.id;
+  try {
+    const resp = await api.items.attachments.delete(props.itemId, target.id);
+    if (resp.error) {
+      toast.error("Не удалось удалить");
+      return;
+    }
+    emit("deleted", target.id);
+    expandedId.value = null;
+    toast.success("Удалено");
+  } catch {
+    toast.error("Не удалось удалить");
+  } finally {
+    deletingId.value = null;
+    deleteConfirmFor.value = null;
   }
 }
 
@@ -289,6 +314,14 @@ function labelForType(type: string): string {
                 >
                   {{ savingId === att.id ? "Сохраняем..." : "Сохранить" }}
                 </Button>
+                <Button
+                  variant="outline"
+                  class="text-destructive hover:text-destructive"
+                  :disabled="savingId === att.id || deletingId === att.id"
+                  @click="deleteConfirmFor = att"
+                >
+                  Удалить
+                </Button>
                 <Button variant="outline" :disabled="savingId === att.id" @click="expandedId = null">
                   Отмена
                 </Button>
@@ -300,6 +333,30 @@ function labelForType(type: string): string {
           Файлов нет
         </p>
       </div>
+
+      <AlertDialog
+        :open="deleteConfirmFor !== null"
+        @update:open="(v: boolean) => { if (!v) deleteConfirmFor = null; }"
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить файл?</AlertDialogTitle>
+            <AlertDialogDescription>
+              «{{ deleteConfirmFor?.title }}» будет удалён без возможности восстановления.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel :disabled="deletingId !== null">Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              :disabled="deletingId !== null"
+              @click="confirmDelete"
+            >
+              {{ deletingId !== null ? "Удаляем..." : "Удалить" }}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DrawerContent>
   </Drawer>
 </template>
