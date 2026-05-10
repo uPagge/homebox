@@ -527,14 +527,14 @@ function formatDate(date: Date | string | undefined): string {
           item.attachments = item.attachments.filter(a => a.id !== id);
         }"
       />
-
-      <MoveScannerSheet
-        :open="showMoveScanner"
-        :preload-items="moveScannerPreload"
-        :force-queue-mode="true"
-        @update:open="showMoveScanner = $event"
-        @done="fetchItem()"
-      />
     </template>
+
+    <MoveScannerSheet
+      :open="showMoveScanner"
+      :preload-items="moveScannerPreload"
+      :force-queue-mode="true"
+      @update:open="showMoveScanner = $event"
+      @done="fetchItem()"
+    />
   </div>
 </template>

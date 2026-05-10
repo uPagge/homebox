@@ -43,6 +43,9 @@ onBeforeUnmount(() => scanner.stop());
 const showCloseConfirm = ref(false);
 
 function tryClose() {
+  // Vaul fires @update:open(false) on mount even if the drawer was never open;
+  // without this guard, every mount emits "done" up to the parent.
+  if (!props.open) return;
   if (session.queue.value.length > 0 && session.mode.value === "queue") {
     showCloseConfirm.value = true;
   } else {
