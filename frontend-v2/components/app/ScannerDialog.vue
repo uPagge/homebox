@@ -7,17 +7,13 @@ import { useScanner, type ScanResult } from "~/composables/use-scanner";
 import { parseHomeboxUrl } from "~/lib/scanner/parse-homebox-url";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-const emit = defineEmits<{
-  "scanned-barcode": [text: string];
-}>();
-
 const { activeDialog, closeDialog } = useDialog();
 const isOpen = computed(() => activeDialog.value === DialogID.Scanner);
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 
 const scanner = useScanner({
-  formats: ["QR_CODE", "EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128"],
+  formats: ["QR_CODE"],
   duplicateDebounceMs: 0,
 });
 
@@ -33,10 +29,10 @@ watch(isOpen, async (val) => {
 });
 
 // Auto-navigate without showing the result panel when the QR is a known
-// homebox URL — there's nothing to confirm. Barcodes and unrecognised QR
-// codes still go through the result panel so the user can pick an action.
+// homebox URL — there's nothing to confirm. Other QR contents still go
+// through the result panel so the user can pick an action.
 watch(() => scanner.result.value, (r) => {
-  if (r && r.format === "QR_CODE" && parseHomeboxUrl(r.text)) {
+  if (r && parseHomeboxUrl(r.text)) {
     handleResult(r);
   }
 });
@@ -52,37 +48,27 @@ function close(): void {
 function handleResult(r: ScanResult): void {
   close();
 
-  if (r.format === "QR_CODE") {
-    // Legacy and v2 frontends use different path conventions (/item vs /items).
-    // parseHomeboxUrl normalises both to v2 and ignores origin so old printed
-    // labels (with the legacy hostname) still navigate locally.
-    const localPath = parseHomeboxUrl(r.text);
-    if (localPath) {
-      navigateTo(localPath);
-      return;
-    }
-
-    let url: URL | null = null;
-    try {
-      url = new URL(r.text);
-    } catch {
-      url = null;
-    }
-    if (url) {
-      toast.info(`Внешняя ссылка: ${r.text}`, {
-        action: { label: "Открыть", onClick: () => window.open(r.text, "_blank") },
-      });
-      return;
-    }
-    toast.info(`Не распознано: ${r.text}`);
+  // Legacy and v2 frontends use different path conventions (/item vs /items).
+  // parseHomeboxUrl normalises both to v2 and ignores origin so old printed
+  // labels (with the legacy hostname) still navigate locally.
+  const localPath = parseHomeboxUrl(r.text);
+  if (localPath) {
+    navigateTo(localPath);
     return;
   }
 
-  if (["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128"].includes(r.format)) {
-    emit("scanned-barcode", r.text);
+  let url: URL | null = null;
+  try {
+    url = new URL(r.text);
+  } catch {
+    url = null;
+  }
+  if (url) {
+    toast.info(`Внешняя ссылка: ${r.text}`, {
+      action: { label: "Открыть", onClick: () => window.open(r.text, "_blank") },
+    });
     return;
   }
-
   toast.info(`Не распознано: ${r.text}`);
 }
 
@@ -150,7 +136,7 @@ async function retry(): Promise<void> {
           <p class="font-mono text-sm break-all">{{ scanner.result.value.text }}</p>
           <div class="flex gap-2">
             <button class="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm" @click="handleResult(scanner.result.value!)">
-              {{ scanner.result.value.format === "QR_CODE" ? "Открыть" : "Создать вещь" }}
+              Открыть
             </button>
             <button class="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm" @click="scanner.reset()">
               Сканировать ещё

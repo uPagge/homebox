@@ -8,7 +8,6 @@ import { toast } from "vue-sonner";
 const props = defineProps<{
   open: boolean;
   contextLocationId?: string;
-  initialBarcode?: string;
 }>();
 
 const emit = defineEmits<{
@@ -130,15 +129,6 @@ watch(() => props.open, (isOpen) => {
     } else if (lastLocationId.value && !locationId.value) {
       locationId.value = lastLocationId.value;
     }
-  }
-});
-
-// ItemCreate has no barcode field; embed scanned code in description.
-watch(() => props.open, (isOpen) => {
-  if (isOpen && props.initialBarcode) {
-    const prefix = `Штрихкод: ${props.initialBarcode}\n\n`;
-    description.value = prefix + (description.value ?? "");
-    showMore.value = true;
   }
 });
 

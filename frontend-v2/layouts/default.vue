@@ -6,7 +6,6 @@ type CreateType = "item" | "location" | "label" | null;
 const showCreateMenu = ref(false);
 const showQuickMenu = ref(false);
 const activeCreate = ref<CreateType>(null);
-const initialBarcode = ref<string>("");
 const route = useRoute();
 
 // Detect current location context from URL
@@ -39,13 +38,7 @@ function onLocationCreated(id: string) {
 function closeCreate(open: boolean) {
   if (!open) {
     activeCreate.value = null;
-    initialBarcode.value = "";
   }
-}
-
-function onScannedBarcode(text: string): void {
-  initialBarcode.value = text;
-  activeCreate.value = "item";
 }
 
 const { activeDialog, openDialog } = useDialog();
@@ -142,7 +135,6 @@ function onQuickMenuCreate(type: "item" | "location" | "label") {
     <QuickAddSheet
       :open="activeCreate === 'item'"
       :context-location-id="contextLocationId"
-      :initial-barcode="initialBarcode"
       @update:open="closeCreate"
       @created="onCreated"
     />
@@ -163,6 +155,6 @@ function onQuickMenuCreate(type: "item" | "location" | "label") {
       @create="onQuickMenuCreate"
     />
 
-    <ScannerDialog @scanned-barcode="onScannedBarcode" />
+    <ScannerDialog />
   </div>
 </template>
