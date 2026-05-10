@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Camera, Paperclip, Image, FileText, Receipt, Shield, Star } from "lucide-vue-next";
-import type { ItemAttachment } from "~~/lib/api/types/data-contracts";
+import type { ItemAttachment, ItemOut } from "~~/lib/api/types/data-contracts";
 import { AttachmentTypes } from "~~/lib/api/types/non-generated";
+import { toast } from "vue-sonner";
 
 const props = defineProps<{
   open: boolean;
@@ -11,9 +12,38 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
+  updated: [item: ItemOut];
 }>();
 
+const api = useUserApi();
 const { attachmentUrl: makeAttachmentUrl } = useAttachmentUrl();
+
+const photoInput = ref<HTMLInputElement | null>(null);
+const uploading = ref(false);
+
+async function uploadFile(file: File, type: AttachmentTypes) {
+  uploading.value = true;
+  try {
+    const resp = await api.items.attachments.add(props.itemId, file, file.name, type);
+    if (resp.error || !resp.data) {
+      toast.error("Не удалось загрузить файл");
+      return;
+    }
+    emit("updated", resp.data);
+    toast.success("Файл загружен");
+  } catch {
+    toast.error("Не удалось загрузить файл");
+  } finally {
+    uploading.value = false;
+  }
+}
+
+async function onPhotoPick(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  await uploadFile(file, AttachmentTypes.Photo);
+  if (photoInput.value) photoInput.value.value = "";
+}
 
 function iconForType(type: string) {
   switch (type) {
@@ -46,8 +76,9 @@ function labelForType(type: string): string {
       <div class="px-4 pb-6 space-y-4 max-h-[70vh] overflow-y-auto">
         <div class="flex gap-2">
           <button
-            disabled
-            class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground"
+            :disabled="uploading"
+            class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm hover:bg-accent disabled:opacity-50 transition-colors"
+            @click="photoInput?.click()"
           >
             <Camera class="w-4 h-4" />
             Фото
@@ -60,6 +91,15 @@ function labelForType(type: string): string {
             Файл
           </button>
         </div>
+
+        <input
+          ref="photoInput"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          class="hidden"
+          @change="onPhotoPick"
+        />
 
         <ul v-if="attachments.length" class="border border-border rounded-lg overflow-hidden divide-y divide-border">
           <li
