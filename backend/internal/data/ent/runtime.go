@@ -204,7 +204,7 @@ func init() {
 	// itemDescQuantity is the schema descriptor for quantity field.
 	itemDescQuantity := itemFields[2].Descriptor()
 	// item.DefaultQuantity holds the default value on creation for the quantity field.
-	item.DefaultQuantity = itemDescQuantity.Default.(int)
+	item.DefaultQuantity = itemDescQuantity.Default.(float64)
 	// itemDescInsured is the schema descriptor for insured field.
 	itemDescInsured := itemFields[3].Descriptor()
 	// item.DefaultInsured holds the default value on creation for the insured field.
@@ -358,7 +358,7 @@ func init() {
 	// itemtemplateDescDefaultQuantity is the schema descriptor for default_quantity field.
 	itemtemplateDescDefaultQuantity := itemtemplateFields[1].Descriptor()
 	// itemtemplate.DefaultDefaultQuantity holds the default value on creation for the default_quantity field.
-	itemtemplate.DefaultDefaultQuantity = itemtemplateDescDefaultQuantity.Default.(int)
+	itemtemplate.DefaultDefaultQuantity = itemtemplateDescDefaultQuantity.Default.(float64)
 	// itemtemplateDescDefaultInsured is the schema descriptor for default_insured field.
 	itemtemplateDescDefaultInsured := itemtemplateFields[2].Descriptor()
 	// itemtemplate.DefaultDefaultInsured holds the default value on creation for the default_insured field.
@@ -593,6 +593,10 @@ func init() {
 	tagDescColor := tagFields[0].Descriptor()
 	// tag.ColorValidator is a validator for the "color" field. It is called by the builders before save.
 	tag.ColorValidator = tagDescColor.Validators[0].(func(string) error)
+	// tagDescIcon is the schema descriptor for icon field.
+	tagDescIcon := tagFields[1].Descriptor()
+	// tag.IconValidator is a validator for the "icon" field. It is called by the builders before save.
+	tag.IconValidator = tagDescIcon.Validators[0].(func(string) error)
 	// tagDescID is the schema descriptor for id field.
 	tagDescID := tagMixinFields0[0].Descriptor()
 	// tag.DefaultID holds the default value on creation for the id field.

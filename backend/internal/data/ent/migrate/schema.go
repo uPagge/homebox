@@ -138,7 +138,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 1000},
 		{Name: "import_ref", Type: field.TypeString, Nullable: true, Size: 100},
 		{Name: "notes", Type: field.TypeString, Nullable: true, Size: 1000},
-		{Name: "quantity", Type: field.TypeInt, Default: 1},
+		{Name: "quantity", Type: field.TypeFloat64, Default: 1},
 		{Name: "insured", Type: field.TypeBool, Default: false},
 		{Name: "archived", Type: field.TypeBool, Default: false},
 		{Name: "asset_id", Type: field.TypeInt, Default: 0},
@@ -254,7 +254,7 @@ var (
 		{Name: "name", Type: field.TypeString, Size: 255},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 1000},
 		{Name: "notes", Type: field.TypeString, Nullable: true, Size: 1000},
-		{Name: "default_quantity", Type: field.TypeInt, Default: 1},
+		{Name: "default_quantity", Type: field.TypeFloat64, Default: 1},
 		{Name: "default_insured", Type: field.TypeBool, Default: false},
 		{Name: "default_name", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "default_description", Type: field.TypeString, Nullable: true, Size: 1000},
@@ -413,7 +413,9 @@ var (
 		{Name: "name", Type: field.TypeString, Size: 255},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 1000},
 		{Name: "color", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "icon", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "group_tags", Type: field.TypeUUID},
+		{Name: "tag_children", Type: field.TypeUUID, Nullable: true},
 	}
 	// TagsTable holds the schema information for the "tags" table.
 	TagsTable = &schema.Table{
@@ -423,9 +425,15 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tags_groups_tags",
-				Columns:    []*schema.Column{TagsColumns[6]},
+				Columns:    []*schema.Column{TagsColumns[7]},
 				RefColumns: []*schema.Column{GroupsColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "tags_tags_children",
+				Columns:    []*schema.Column{TagsColumns[8]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -472,6 +480,7 @@ var (
 		{Name: "oidc_issuer", Type: field.TypeString, Nullable: true},
 		{Name: "oidc_subject", Type: field.TypeString, Nullable: true},
 		{Name: "default_group_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "settings", Type: field.TypeJSON, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -575,6 +584,7 @@ func init() {
 	NotifiersTable.ForeignKeys[0].RefTable = GroupsTable
 	NotifiersTable.ForeignKeys[1].RefTable = UsersTable
 	TagsTable.ForeignKeys[0].RefTable = GroupsTable
+	TagsTable.ForeignKeys[1].RefTable = TagsTable
 	TemplateFieldsTable.ForeignKeys[0].RefTable = ItemTemplatesTable
 	TagItemsTable.ForeignKeys[0].RefTable = TagsTable
 	TagItemsTable.ForeignKeys[1].RefTable = ItemsTable

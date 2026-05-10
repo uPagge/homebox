@@ -301,7 +301,7 @@ definitions:
         type: string
       quantity:
         description: Quantity holds the value of the "quantity" field.
-        type: integer
+        type: number
       serial_number:
         description: SerialNumber holds the value of the "serial_number" field.
         type: string
@@ -446,7 +446,7 @@ definitions:
         type: string
       default_quantity:
         description: DefaultQuantity holds the value of the "default_quantity" field.
-        type: integer
+        type: number
       default_tag_ids:
         description: Default tag IDs for items created from this template
         items:
@@ -651,6 +651,9 @@ definitions:
         description: |-
           Edges holds the relations/edges for other nodes in the graph.
           The values are being populated by the TagQuery when eager-loading is set.
+      icon:
+        description: Icon holds the value of the "icon" field.
+        type: string
       id:
         description: ID of the ent.
         type: string
@@ -663,6 +666,11 @@ definitions:
     type: object
   ent.TagEdges:
     properties:
+      children:
+        description: Children holds the value of the children edge.
+        items:
+          $ref: '#/definitions/ent.Tag'
+        type: array
       group:
         allOf:
         - $ref: '#/definitions/ent.Group'
@@ -672,6 +680,10 @@ definitions:
         items:
           $ref: '#/definitions/ent.Item'
         type: array
+      parent:
+        allOf:
+        - $ref: '#/definitions/ent.Tag'
+        description: Parent holds the value of the parent edge.
     type: object
   ent.TemplateField:
     properties:
@@ -759,6 +771,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/user.Role'
         description: Role holds the value of the "role" field.
+      settings:
+        additionalProperties: true
+        description: Settings holds the value of the "settings" field.
+        type: object
       superuser:
         description: Superuser holds the value of the "superuser" field.
         type: boolean
@@ -920,7 +936,7 @@ definitions:
         type: string
         x-nullable: true
       quantity:
-        type: integer
+        type: number
       tagIds:
         items:
           type: string
@@ -1001,7 +1017,7 @@ definitions:
         description: Purchase
         type: string
       quantity:
-        type: integer
+        type: number
       serialNumber:
         type: string
       soldNotes:
@@ -1039,7 +1055,7 @@ definitions:
         x-nullable: true
         x-omitempty: true
       quantity:
-        type: integer
+        type: number
         x-nullable: true
         x-omitempty: true
       tagIds:
@@ -1088,7 +1104,7 @@ definitions:
       purchasePrice:
         type: number
       quantity:
-        type: integer
+        type: number
       soldTime:
         description: Sale details
         type: string
@@ -1131,7 +1147,7 @@ definitions:
         x-nullable: true
       defaultQuantity:
         description: Default values for items
-        type: integer
+        type: number
         x-nullable: true
       defaultTagIds:
         items:
@@ -1189,7 +1205,7 @@ definitions:
         type: string
       defaultQuantity:
         description: Default values for items
-        type: integer
+        type: number
       defaultTags:
         items:
           $ref: '#/definitions/repo.TemplateTagSummary'
@@ -1260,7 +1276,7 @@ definitions:
         x-nullable: true
       defaultQuantity:
         description: Default values for items
-        type: integer
+        type: number
         x-nullable: true
       defaultTagIds:
         items:
@@ -1355,7 +1371,7 @@ definitions:
         description: Purchase
         type: string
       quantity:
-        type: integer
+        type: number
       serialNumber:
         description: Identifications
         type: string
@@ -1424,7 +1440,7 @@ definitions:
       id:
         type: string
       itemCount:
-        type: integer
+        type: number
       name:
         type: string
       updatedAt:
@@ -1598,25 +1614,44 @@ definitions:
       description:
         maxLength: 1000
         type: string
+      icon:
+        maxLength: 255
+        type: string
       name:
         maxLength: 255
         minLength: 1
         type: string
+      parentId:
+        type: string
+        x-nullable: true
     required:
     - name
     type: object
   repo.TagOut:
     properties:
+      children:
+        items:
+          $ref: '#/definitions/repo.TagSummary'
+        type: array
       color:
         type: string
       createdAt:
         type: string
       description:
         type: string
+      icon:
+        type: string
       id:
         type: string
       name:
         type: string
+      parent:
+        allOf:
+        - $ref: '#/definitions/repo.TagSummary'
+        x-nullable: true
+      parentId:
+        type: string
+        x-nullable: true
       updatedAt:
         type: string
     type: object
@@ -1628,10 +1663,15 @@ definitions:
         type: string
       description:
         type: string
+      icon:
+        type: string
       id:
         type: string
       name:
         type: string
+      parentId:
+        type: string
+        x-nullable: true
       updatedAt:
         type: string
     type: object
@@ -1805,6 +1845,8 @@ definitions:
         type: string
       oidc:
         $ref: '#/definitions/v1.OIDCStatus'
+      telemetry:
+        $ref: '#/definitions/v1.TelemetryStatus'
       title:
         type: string
       versions:
@@ -1893,7 +1935,7 @@ definitions:
         minLength: 1
         type: string
       quantity:
-        type: integer
+        type: number
       tagIds:
         items:
           type: string
@@ -1921,6 +1963,11 @@ definitions:
         type: boolean
       buttonText:
         type: string
+      enabled:
+        type: boolean
+    type: object
+  v1.TelemetryStatus:
+    properties:
       enabled:
         type: boolean
     type: object
@@ -2807,7 +2854,7 @@ paths:
       summary: Import Items
       tags:
       - Items
-  /v1/labelmaker/assets/{id}:
+  /v1/labelmaker/asset/{id}:
     get:
       parameters:
       - description: Asset ID
@@ -3618,6 +3665,53 @@ paths:
       security:
       - Bearer: []
       summary: Update Account
+      tags:
+      - User
+  /v1/users/self/settings:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/v1.Wrapped'
+            - properties:
+                item:
+                  additionalProperties: true
+                  type: object
+              type: object
+      security:
+      - Bearer: []
+      summary: Get user settings
+      tags:
+      - User
+    put:
+      parameters:
+      - description: Settings Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/v1.Wrapped'
+            - properties:
+                item:
+                  additionalProperties: true
+                  type: object
+              type: object
+      security:
+      - Bearer: []
+      summary: Update user settings
       tags:
       - User
 schemes:

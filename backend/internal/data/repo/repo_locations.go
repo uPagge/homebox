@@ -44,7 +44,7 @@ type (
 
 	LocationOutCount struct {
 		LocationSummary
-		ItemCount int `json:"itemCount"`
+		ItemCount float64 `json:"itemCount"`
 	}
 
 	LocationOut struct {
@@ -70,8 +70,7 @@ var mapLocationOutErr = mapTErrFunc(mapLocationOut)
 func mapLocationOut(location *ent.Location) LocationOut {
 	var parent *LocationSummary
 	if location.Edges.Parent != nil {
-		p := mapLocationSummary(location.Edges.Parent)
-		parent = &p
+		parent = new(mapLocationSummary(location.Edges.Parent))
 	}
 
 	children := lo.Map(location.Edges.Children, func(c *ent.Location, _ int) LocationSummary {
@@ -143,7 +142,7 @@ func (r *LocationRepository) GetAll(ctx context.Context, gid uuid.UUID, filter L
 	for rows.Next() {
 		var ct LocationOutCount
 
-		var maybeCount *int
+		var maybeCount *float64
 
 		err := rows.Scan(&ct.ID, &ct.Name, &ct.Description, &ct.CreatedAt, &ct.UpdatedAt, &maybeCount)
 		if err != nil {

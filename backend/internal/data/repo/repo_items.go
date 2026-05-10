@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,7 +72,7 @@ type (
 		ImportRef   string    `json:"-"`
 		ParentID    uuid.UUID `json:"parentId"    extensions:"x-nullable"`
 		Name        string    `json:"name"        validate:"required,min=1,max=255"`
-		Quantity    int       `json:"quantity"`
+		Quantity    float64   `json:"quantity"`
 		Description string    `json:"description" validate:"max=1000"`
 		AssetID     AssetID   `json:"-"`
 
@@ -86,7 +87,7 @@ type (
 		AssetID                 AssetID   `json:"assetId"                 swaggertype:"string"`
 		Name                    string    `json:"name"                    validate:"required,min=1,max=255"`
 		Description             string    `json:"description"             validate:"max=1000"`
-		Quantity                int       `json:"quantity"`
+		Quantity                float64   `json:"quantity"`
 		Insured                 bool      `json:"insured"`
 		Archived                bool      `json:"archived"`
 		SyncChildItemsLocations bool      `json:"syncChildItemsLocations"`
@@ -123,8 +124,8 @@ type (
 
 	ItemPatch struct {
 		ID         uuid.UUID   `json:"id"`
-		Quantity   *int        `json:"quantity,omitempty" extensions:"x-nullable,x-omitempty"`
-		ImportRef  *string     `json:"-,omitempty"        extensions:"x-nullable,x-omitempty"`
+		Quantity   *float64    `json:"quantity,omitempty" extensions:"x-nullable,x-omitempty"`
+		ImportRef  *string     `json:"-"                  extensions:"x-nullable,x-omitempty"`
 		LocationID uuid.UUID   `json:"locationId"         extensions:"x-nullable,x-omitempty"`
 		TagIDs     []uuid.UUID `json:"tagIds"             extensions:"x-nullable,x-omitempty"`
 	}
@@ -135,7 +136,7 @@ type (
 		AssetID     AssetID   `json:"assetId,string"`
 		Name        string    `json:"name"`
 		Description string    `json:"description"`
-		Quantity    int       `json:"quantity"`
+		Quantity    float64   `json:"quantity"`
 		Insured     bool      `json:"insured"`
 		Archived    bool      `json:"archived"`
 		CreatedAt   time.Time `json:"createdAt"`
@@ -193,8 +194,7 @@ var mapItemsSummaryErr = mapTEachErrFunc(mapItemSummary)
 func mapItemSummary(item *ent.Item) ItemSummary {
 	var location *LocationSummary
 	if item.Edges.Location != nil {
-		loc := mapLocationSummary(item.Edges.Location)
-		location = &loc
+		location = new(mapLocationSummary(item.Edges.Location))
 	}
 
 	tags := lo.Ternary(item.Edges.Tag != nil, mapEach(item.Edges.Tag, mapTagSummary), []TagSummary{})
@@ -267,8 +267,7 @@ func mapItemOut(item *ent.Item) ItemOut {
 
 	var parent *ItemSummary
 	if item.Edges.Parent != nil {
-		v := mapItemSummary(item.Edges.Parent)
-		parent = &v
+		parent = new(mapItemSummary(item.Edges.Parent))
 	}
 
 	return ItemOut{
@@ -407,14 +406,26 @@ func (e *ItemsRepository) QueryByGroup(ctx context.Context, gid uuid.UUID, q Ite
 	var andPredicates []predicate.Item
 	{
 		if len(q.TagIDs) > 0 {
+			// Get descendant tags for both positive and negative filtering
+			tagRepo := &TagRepository{e.db, e.bus}
+			descendants, err := tagRepo.GetDescendantTagIDs(ctx, q.TagIDs)
+			if err != nil {
+				log.Warn().Err(err).Msg("failed to get descendant tags, using only direct tags")
+				descendants = q.TagIDs
+			} else if len(descendants) == 0 {
+				descendants = q.TagIDs
+			}
+
 			var tagPredicates []predicate.Item
 			if !q.NegateTags {
-				tagPredicates = lo.Map(q.TagIDs, func(l uuid.UUID, _ int) predicate.Item {
+				// Include items with any of the selected tags or their descendants
+				tagPredicates = lo.Map(descendants, func(l uuid.UUID, _ int) predicate.Item {
 					return item.HasTagWith(tag.ID(l))
 				})
 				andPredicates = append(andPredicates, item.Or(tagPredicates...))
 			} else {
-				tagPredicates = lo.Map(q.TagIDs, func(l uuid.UUID, _ int) predicate.Item {
+				// Exclude items with any of the selected tags or their descendants
+				tagPredicates = lo.Map(descendants, func(l uuid.UUID, _ int) predicate.Item {
 					return item.Not(item.HasTagWith(tag.ID(l)))
 				})
 				andPredicates = append(andPredicates, item.And(tagPredicates...))
@@ -613,7 +624,19 @@ func (e *ItemsRepository) SetAssetID(ctx context.Context, gid uuid.UUID, id uuid
 	return err
 }
 
+func validateQuantity(op string, quantity float64) error {
+	if math.IsNaN(quantity) || math.IsInf(quantity, 0) {
+		return fmt.Errorf("%s: invalid quantity: must be a finite number", op)
+	}
+
+	return nil
+}
+
 func (e *ItemsRepository) Create(ctx context.Context, gid uuid.UUID, data ItemCreate) (ItemOut, error) {
+	if err := validateQuantity("create item", data.Quantity); err != nil {
+		return ItemOut{}, err
+	}
+
 	q := e.db.Item.Create().
 		SetImportRef(data.ImportRef).
 		SetName(data.Name).
@@ -644,7 +667,7 @@ func (e *ItemsRepository) Create(ctx context.Context, gid uuid.UUID, data ItemCr
 type ItemCreateFromTemplate struct {
 	Name             string
 	Description      string
-	Quantity         int
+	Quantity         float64
 	LocationID       uuid.UUID
 	TagIDs           []uuid.UUID
 	Insured          bool
@@ -657,6 +680,10 @@ type ItemCreateFromTemplate struct {
 
 // CreateFromTemplate creates an item with all template data in a single transaction.
 func (e *ItemsRepository) CreateFromTemplate(ctx context.Context, gid uuid.UUID, data ItemCreateFromTemplate) (ItemOut, error) {
+	if err := validateQuantity("create item from template", data.Quantity); err != nil {
+		return ItemOut{}, err
+	}
+
 	tx, err := e.db.Tx(ctx)
 	if err != nil {
 		return ItemOut{}, err
@@ -878,6 +905,10 @@ func (e *ItemsRepository) WipeInventory(ctx context.Context, gid uuid.UUID, wipe
 }
 
 func (e *ItemsRepository) UpdateByGroup(ctx context.Context, gid uuid.UUID, data ItemUpdate) (ItemOut, error) {
+	if err := validateQuantity("update item", data.Quantity); err != nil {
+		return ItemOut{}, err
+	}
+
 	q := e.db.Item.Update().Where(item.ID(data.ID), item.HasGroupWith(group.ID(gid))).
 		SetName(data.Name).
 		SetDescription(data.Description).
@@ -1061,6 +1092,10 @@ func (e *ItemsRepository) Patch(ctx context.Context, gid, id uuid.UUID, data Ite
 	}
 
 	if data.Quantity != nil {
+		if err := validateQuantity("patch item", *data.Quantity); err != nil {
+			return err
+		}
+
 		q.SetQuantity(*data.Quantity)
 	}
 

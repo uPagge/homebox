@@ -1496,7 +1496,7 @@
                 }
             }
         },
-        "/v1/labelmaker/assets/{id}": {
+        "/v1/labelmaker/asset/{id}": {
             "get": {
                 "security": [
                     {
@@ -2916,6 +2916,92 @@
                     }
                 }
             }
+        },
+        "/v1/users/self/settings": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get user settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/v1.Wrapped"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "item": {
+                                                    "type": "object",
+                                                    "additionalProperties": true
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update user settings",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    },
+                    "description": "Settings Data",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/v1.Wrapped"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "item": {
+                                                    "type": "object",
+                                                    "additionalProperties": true
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "servers": [
@@ -3370,7 +3456,7 @@
                     },
                     "quantity": {
                         "description": "Quantity holds the value of the \"quantity\" field.",
-                        "type": "integer"
+                        "type": "number"
                     },
                     "serial_number": {
                         "description": "SerialNumber holds the value of the \"serial_number\" field.",
@@ -3577,7 +3663,7 @@
                     },
                     "default_quantity": {
                         "description": "DefaultQuantity holds the value of the \"default_quantity\" field.",
-                        "type": "integer"
+                        "type": "number"
                     },
                     "default_tag_ids": {
                         "description": "Default tag IDs for items created from this template",
@@ -3875,6 +3961,10 @@
                             }
                         ]
                     },
+                    "icon": {
+                        "description": "Icon holds the value of the \"icon\" field.",
+                        "type": "string"
+                    },
                     "id": {
                         "description": "ID of the ent.",
                         "type": "string"
@@ -3892,6 +3982,13 @@
             "ent.TagEdges": {
                 "type": "object",
                 "properties": {
+                    "children": {
+                        "description": "Children holds the value of the children edge.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ent.Tag"
+                        }
+                    },
                     "group": {
                         "description": "Group holds the value of the group edge.",
                         "allOf": [
@@ -3906,6 +4003,14 @@
                         "items": {
                             "$ref": "#/components/schemas/ent.Item"
                         }
+                    },
+                    "parent": {
+                        "description": "Parent holds the value of the parent edge.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ent.Tag"
+                            }
+                        ]
                     }
                 }
             },
@@ -4033,6 +4138,11 @@
                                 "$ref": "#/components/schemas/user.Role"
                             }
                         ]
+                    },
+                    "settings": {
+                        "description": "Settings holds the value of the \"settings\" field.",
+                        "type": "object",
+                        "additionalProperties": true
                     },
                     "superuser": {
                         "description": "Superuser holds the value of the \"superuser\" field.",
@@ -4274,7 +4384,7 @@
                         "nullable": true
                     },
                     "quantity": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "tagIds": {
                         "type": "array",
@@ -4393,7 +4503,7 @@
                         "type": "string"
                     },
                     "quantity": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "serialNumber": {
                         "type": "string"
@@ -4448,7 +4558,7 @@
                         "nullable": true
                     },
                     "quantity": {
-                        "type": "integer",
+                        "type": "number",
                         "x-omitempty": true,
                         "nullable": true
                     },
@@ -4520,7 +4630,7 @@
                         "type": "number"
                     },
                     "quantity": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "soldTime": {
                         "description": "Sale details",
@@ -4581,7 +4691,7 @@
                     },
                     "defaultQuantity": {
                         "description": "Default values for items",
-                        "type": "integer",
+                        "type": "number",
                         "nullable": true
                     },
                     "defaultTagIds": {
@@ -4662,7 +4772,7 @@
                     },
                     "defaultQuantity": {
                         "description": "Default values for items",
-                        "type": "integer"
+                        "type": "number"
                     },
                     "defaultTags": {
                         "type": "array",
@@ -4766,7 +4876,7 @@
                     },
                     "defaultQuantity": {
                         "description": "Default values for items",
-                        "type": "integer",
+                        "type": "number",
                         "nullable": true
                     },
                     "defaultTagIds": {
@@ -4897,7 +5007,7 @@
                         "type": "string"
                     },
                     "quantity": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "serialNumber": {
                         "description": "Identifications",
@@ -4996,7 +5106,7 @@
                         "type": "string"
                     },
                     "itemCount": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "name": {
                         "type": "string"
@@ -5258,16 +5368,30 @@
                         "type": "string",
                         "maxLength": 1000
                     },
+                    "icon": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
                     "name": {
                         "type": "string",
                         "maxLength": 255,
                         "minLength": 1
+                    },
+                    "parentId": {
+                        "type": "string",
+                        "nullable": true
                     }
                 }
             },
             "repo.TagOut": {
                 "type": "object",
                 "properties": {
+                    "children": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/repo.TagSummary"
+                        }
+                    },
                     "color": {
                         "type": "string"
                     },
@@ -5277,11 +5401,26 @@
                     "description": {
                         "type": "string"
                     },
+                    "icon": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
                     "name": {
                         "type": "string"
+                    },
+                    "parent": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/repo.TagSummary"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "parentId": {
+                        "type": "string",
+                        "nullable": true
                     },
                     "updatedAt": {
                         "type": "string"
@@ -5300,11 +5439,18 @@
                     "description": {
                         "type": "string"
                     },
+                    "icon": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
                     "name": {
                         "type": "string"
+                    },
+                    "parentId": {
+                        "type": "string",
+                        "nullable": true
                     },
                     "updatedAt": {
                         "type": "string"
@@ -5567,6 +5713,9 @@
                     "oidc": {
                         "$ref": "#/components/schemas/v1.OIDCStatus"
                     },
+                    "telemetry": {
+                        "$ref": "#/components/schemas/v1.TelemetryStatus"
+                    },
                     "title": {
                         "type": "string"
                     },
@@ -5705,7 +5854,7 @@
                         "minLength": 1
                     },
                     "quantity": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "tagIds": {
                         "type": "array",
@@ -5743,6 +5892,14 @@
                     "buttonText": {
                         "type": "string"
                     },
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "v1.TelemetryStatus": {
+                "type": "object",
+                "properties": {
                     "enabled": {
                         "type": "boolean"
                     }

@@ -1399,7 +1399,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/labelmaker/assets/{id}": {
+        "/v1/labelmaker/asset/{id}": {
             "get": {
                 "security": [
                     {
@@ -2736,6 +2736,90 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/users/self/settings": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get user settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/v1.Wrapped"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "item": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update user settings",
+                "parameters": [
+                    {
+                        "description": "Settings Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/v1.Wrapped"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "item": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3173,7 +3257,7 @@ const docTemplate = `{
                 },
                 "quantity": {
                     "description": "Quantity holds the value of the \"quantity\" field.",
-                    "type": "integer"
+                    "type": "number"
                 },
                 "serial_number": {
                     "description": "SerialNumber holds the value of the \"serial_number\" field.",
@@ -3380,7 +3464,7 @@ const docTemplate = `{
                 },
                 "default_quantity": {
                     "description": "DefaultQuantity holds the value of the \"default_quantity\" field.",
-                    "type": "integer"
+                    "type": "number"
                 },
                 "default_tag_ids": {
                     "description": "Default tag IDs for items created from this template",
@@ -3678,6 +3762,10 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "icon": {
+                    "description": "Icon holds the value of the \"icon\" field.",
+                    "type": "string"
+                },
                 "id": {
                     "description": "ID of the ent.",
                     "type": "string"
@@ -3695,6 +3783,13 @@ const docTemplate = `{
         "ent.TagEdges": {
             "type": "object",
             "properties": {
+                "children": {
+                    "description": "Children holds the value of the children edge.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ent.Tag"
+                    }
+                },
                 "group": {
                     "description": "Group holds the value of the group edge.",
                     "allOf": [
@@ -3709,6 +3804,14 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/ent.Item"
                     }
+                },
+                "parent": {
+                    "description": "Parent holds the value of the parent edge.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ent.Tag"
+                        }
+                    ]
                 }
             }
         },
@@ -3836,6 +3939,11 @@ const docTemplate = `{
                             "$ref": "#/definitions/user.Role"
                         }
                     ]
+                },
+                "settings": {
+                    "description": "Settings holds the value of the \"settings\" field.",
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "superuser": {
                     "description": "Superuser holds the value of the \"superuser\" field.",
@@ -4077,7 +4185,7 @@ const docTemplate = `{
                     "x-nullable": true
                 },
                 "quantity": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "tagIds": {
                     "type": "array",
@@ -4196,7 +4304,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "quantity": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "serialNumber": {
                     "type": "string"
@@ -4251,7 +4359,7 @@ const docTemplate = `{
                     "x-omitempty": true
                 },
                 "quantity": {
-                    "type": "integer",
+                    "type": "number",
                     "x-nullable": true,
                     "x-omitempty": true
                 },
@@ -4323,7 +4431,7 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "quantity": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "soldTime": {
                     "description": "Sale details",
@@ -4384,7 +4492,7 @@ const docTemplate = `{
                 },
                 "defaultQuantity": {
                     "description": "Default values for items",
-                    "type": "integer",
+                    "type": "number",
                     "x-nullable": true
                 },
                 "defaultTagIds": {
@@ -4465,7 +4573,7 @@ const docTemplate = `{
                 },
                 "defaultQuantity": {
                     "description": "Default values for items",
-                    "type": "integer"
+                    "type": "number"
                 },
                 "defaultTags": {
                     "type": "array",
@@ -4569,7 +4677,7 @@ const docTemplate = `{
                 },
                 "defaultQuantity": {
                     "description": "Default values for items",
-                    "type": "integer",
+                    "type": "number",
                     "x-nullable": true
                 },
                 "defaultTagIds": {
@@ -4700,7 +4808,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "quantity": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "serialNumber": {
                     "description": "Identifications",
@@ -4799,7 +4907,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "itemCount": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "name": {
                     "type": "string"
@@ -5061,16 +5169,30 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 1000
                 },
+                "icon": {
+                    "type": "string",
+                    "maxLength": 255
+                },
                 "name": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 1
+                },
+                "parentId": {
+                    "type": "string",
+                    "x-nullable": true
                 }
             }
         },
         "repo.TagOut": {
             "type": "object",
             "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/repo.TagSummary"
+                    }
+                },
                 "color": {
                     "type": "string"
                 },
@@ -5080,11 +5202,26 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "icon": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
+                },
+                "parent": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/repo.TagSummary"
+                        }
+                    ],
+                    "x-nullable": true
+                },
+                "parentId": {
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "updatedAt": {
                     "type": "string"
@@ -5103,11 +5240,18 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "icon": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
+                },
+                "parentId": {
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "updatedAt": {
                     "type": "string"
@@ -5370,6 +5514,9 @@ const docTemplate = `{
                 "oidc": {
                     "$ref": "#/definitions/v1.OIDCStatus"
                 },
+                "telemetry": {
+                    "$ref": "#/definitions/v1.TelemetryStatus"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -5508,7 +5655,7 @@ const docTemplate = `{
                     "minLength": 1
                 },
                 "quantity": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "tagIds": {
                     "type": "array",
@@ -5546,6 +5693,14 @@ const docTemplate = `{
                 "buttonText": {
                     "type": "string"
                 },
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1.TelemetryStatus": {
+            "type": "object",
+            "properties": {
                 "enabled": {
                     "type": "boolean"
                 }

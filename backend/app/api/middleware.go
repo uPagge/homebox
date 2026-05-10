@@ -188,20 +188,20 @@ func (a *app) mwTenant(next errchain.Handler) errchain.Handler {
 				return validate.NewRequestError(errors.New("invalid X-Tenant header format"), http.StatusBadRequest)
 			}
 
-			// Validate user has access to the requested tenant
-			hasAccess := false
-			for _, gid := range user.GroupIDs {
-				if gid == parsedTenantID {
-					hasAccess = true
-					break
-				}
-			}
-
-			if !hasAccess {
-				return validate.NewRequestError(errors.New("user does not have access to the requested tenant"), http.StatusForbidden)
-			}
-
 			tenantID = parsedTenantID
+		}
+
+		// Validate user has access to the resolved tenant (whether from header or default group)
+		hasAccess := false
+		for _, gid := range user.GroupIDs {
+			if gid == tenantID {
+				hasAccess = true
+				break
+			}
+		}
+
+		if !hasAccess {
+			return validate.NewRequestError(errors.New("user does not have access to the requested tenant"), http.StatusForbidden)
 		}
 
 		// Set the tenant in context
@@ -413,12 +413,6 @@ func extractClientIP(r *http.Request, trustProxy bool) string {
 // keyForRequest returns a unique key for the given request.
 func (l *authRateLimiter) keyForRequest(r *http.Request, trustProxy bool) string {
 	return extractClientIP(r, trustProxy) + "|" + r.URL.Path
-}
-
-// clientIP returns the client IP address for the given request.
-// It only uses proxy headers (X-Real-IP, X-Forwarded-For) if TrustProxy is enabled.
-func (l *authRateLimiter) clientIP(r *http.Request, trustProxy bool) string {
-	return extractClientIP(r, trustProxy)
 }
 
 // simpleRateLimiter provides token bucket rate limiting per client IP.
