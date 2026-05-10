@@ -322,3 +322,54 @@ func TestConvertLocationsToTree(t *testing.T) {
 		})
 	}
 }
+
+func TestLocationRepository_GetDescendantLocationIDs(t *testing.T) {
+	ctx := context.Background()
+
+	garage, err := tRepos.Locations.Create(ctx, tGroup.ID, LocationCreate{
+		Name: "rec_garage_" + fk.Str(6),
+	})
+	require.NoError(t, err)
+
+	shelf, err := tRepos.Locations.Create(ctx, tGroup.ID, LocationCreate{
+		ParentID: garage.ID,
+		Name:     "rec_shelf_" + fk.Str(6),
+	})
+	require.NoError(t, err)
+
+	box, err := tRepos.Locations.Create(ctx, tGroup.ID, LocationCreate{
+		ParentID: shelf.ID,
+		Name:     "rec_box_" + fk.Str(6),
+	})
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = tRepos.Locations.delete(ctx, box.ID)
+		_ = tRepos.Locations.delete(ctx, shelf.ID)
+		_ = tRepos.Locations.delete(ctx, garage.ID)
+	})
+
+	t.Run("returns self plus all descendants", func(t *testing.T) {
+		ids, err := tRepos.Locations.GetDescendantLocationIDs(ctx, tGroup.ID, []uuid.UUID{garage.ID})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []uuid.UUID{garage.ID, shelf.ID, box.ID}, ids)
+	})
+
+	t.Run("leaf returns only itself", func(t *testing.T) {
+		ids, err := tRepos.Locations.GetDescendantLocationIDs(ctx, tGroup.ID, []uuid.UUID{box.ID})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []uuid.UUID{box.ID}, ids)
+	})
+
+	t.Run("empty input returns empty", func(t *testing.T) {
+		ids, err := tRepos.Locations.GetDescendantLocationIDs(ctx, tGroup.ID, nil)
+		require.NoError(t, err)
+		assert.Empty(t, ids)
+	})
+
+	t.Run("multiple roots merge their subtrees", func(t *testing.T) {
+		ids, err := tRepos.Locations.GetDescendantLocationIDs(ctx, tGroup.ID, []uuid.UUID{garage.ID, shelf.ID})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []uuid.UUID{garage.ID, shelf.ID, box.ID}, ids)
+	})
+}

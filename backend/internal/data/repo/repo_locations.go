@@ -450,3 +450,49 @@ func ConvertLocationsToTree(locations []FlatTreeItem) []TreeItem {
 		return *locationMap[id]
 	})
 }
+
+// GetDescendantLocationIDs returns the input IDs plus every descendant location
+// reachable through the parent edge, scoped to the given group. The traversal
+// is bounded to 10 levels deep, matching the Tree() depth limit.
+func (r *LocationRepository) GetDescendantLocationIDs(ctx context.Context, gid uuid.UUID, locationIDs []uuid.UUID) ([]uuid.UUID, error) {
+	if len(locationIDs) == 0 {
+		return []uuid.UUID{}, nil
+	}
+
+	result := make(map[uuid.UUID]bool, len(locationIDs))
+	for _, id := range locationIDs {
+		result[id] = true
+	}
+
+	queue := make([]uuid.UUID, len(locationIDs))
+	copy(queue, locationIDs)
+
+	const maxDepth = 10
+	for depth := 0; depth < maxDepth && len(queue) > 0; depth++ {
+		next := make([]uuid.UUID, 0)
+		for _, parentID := range queue {
+			children, err := r.db.Location.Query().
+				Where(
+					location.HasGroupWith(group.ID(gid)),
+					location.HasParentWith(location.ID(parentID)),
+				).
+				All(ctx)
+			if err != nil {
+				return nil, err
+			}
+			for _, child := range children {
+				if !result[child.ID] {
+					result[child.ID] = true
+					next = append(next, child.ID)
+				}
+			}
+		}
+		queue = next
+	}
+
+	out := make([]uuid.UUID, 0, len(result))
+	for id := range result {
+		out = append(out, id)
+	}
+	return out, nil
+}
