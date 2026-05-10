@@ -1,9 +1,11 @@
 import { computed, type ComputedRef, type Ref } from "vue";
 import { useLocationTree } from "./use-location-tree";
 
+export type Separator = " " | "-" | "_" | "." | "";
+
 export interface ParsedName {
   prefix: string;
-  separator: string;
+  separator: Separator;
   num: number;
 }
 
@@ -19,7 +21,7 @@ export function parseNumberedName(input: string): ParsedName | null {
   if (!/\D/.test(prefix)) return null;
   return {
     prefix,
-    separator: m[2],
+    separator: m[2] as Separator,
     num: Number(m[3]),
   };
 }
@@ -31,7 +33,7 @@ export interface SiblingLite {
 
 export interface NameSuggestion {
   name: string;
-  separator: string;
+  separator: Separator;
   nextNumber: number;
 }
 
@@ -43,13 +45,13 @@ export interface SuggestState {
 
 const TRAILING_NUMBER_RE = /[\s\-_.]?\d+$/;
 
-function pickDominantSeparator(separators: string[]): string {
+function pickDominantSeparator(separators: Separator[]): Separator {
   if (separators.length === 0) return " ";
-  const counts = new Map<string, number>();
+  const counts = new Map<Separator, number>();
   for (const s of separators) {
     counts.set(s, (counts.get(s) ?? 0) + 1);
   }
-  let best = " ";
+  let best: Separator = " ";
   let bestCount = -1;
   for (const [sep, count] of counts) {
     if (count > bestCount || (count === bestCount && sep === " ")) {
@@ -73,7 +75,7 @@ export function computeSuggestion(
 
   const inputKey = trimmed.toLocaleLowerCase();
 
-  const matched: { sibling: SiblingLite; separator: string; num: number }[] = [];
+  const matched: { sibling: SiblingLite; separator: Separator; num: number }[] = [];
   for (const sibling of siblings) {
     const parsed = parseNumberedName(sibling.name);
     if (!parsed) continue;

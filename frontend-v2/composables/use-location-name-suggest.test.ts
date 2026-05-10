@@ -53,6 +53,11 @@ describe("computeSuggestion", () => {
     expect(r.suggestion).toBeNull();
   });
 
+  test("input exactly equals an existing sibling → no suggestion (locks trailing-number gate)", () => {
+    const r = computeSuggestion("Box 1", [sib("1", "Box 1")], null);
+    expect(r.suggestion).toBeNull();
+  });
+
   test("zero matching siblings → no suggestion", () => {
     const r = computeSuggestion("Стол", [sib("1", "Коробка 1")], null);
     expect(r.suggestion).toBeNull();

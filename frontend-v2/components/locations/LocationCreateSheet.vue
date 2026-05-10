@@ -26,8 +26,8 @@ function applySuggestion() {
   const s = suggest.value.suggestion;
   if (!s) return;
   name.value = s.name;
-  // Description textarea has id="loc-desc". DOM lookup avoids tangling with
-  // shadcn-vue's component-instance ref shape.
+  // shadcn-vue Textarea exposes a component instance, not the <textarea>;
+  // query the DOM by id instead.
   document.getElementById("loc-desc")?.focus();
 }
 
@@ -102,7 +102,6 @@ function resetAndClose() {
           />
         </div>
 
-        <!-- Auto-suggest hint -->
         <div
           v-if="suggest.suggestion"
           class="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2"
