@@ -69,3 +69,11 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
