@@ -1,3 +1,6 @@
+import { computed, type ComputedRef, type Ref } from "vue";
+import { useLocationTree } from "./use-location-tree";
+
 export interface ParsedName {
   prefix: string;
   separator: string;
@@ -95,4 +98,18 @@ export function computeSuggestion(
     },
     parentName,
   };
+}
+
+export function useLocationNameSuggest(
+  name: Ref<string>,
+  parentId: Ref<string>,
+): ComputedRef<SuggestState> {
+  const tree = useLocationTree();
+
+  return computed(() => {
+    const pid = parentId.value || null;
+    const siblings = tree.getSiblings(pid);
+    const parentName = pid ? tree.getName(pid) : null;
+    return computeSuggestion(name.value, siblings, parentName);
+  });
 }
