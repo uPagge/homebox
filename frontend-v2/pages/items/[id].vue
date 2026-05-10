@@ -2,9 +2,9 @@
 import {
   ArrowLeft, MapPin, Tag, Copy, Trash2,
   Shield, ShieldAlert, ShieldCheck,
-  Paperclip, Star,
+  Paperclip, Star, ScanLine,
 } from "lucide-vue-next";
-import type { ItemOut, LocationOutCount } from "~~/lib/api/types/data-contracts";
+import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
 
 definePageMeta({ layout: "default" });
@@ -85,6 +85,30 @@ async function duplicateItem() {
 }
 
 const showDeleteDialog = ref(false);
+
+const showMoveScanner = ref(false);
+
+const moveScannerPreload = computed<ItemSummary[]>(() => {
+  if (!item.value) return [];
+  const it = item.value;
+  return [{
+    id: it.id,
+    name: it.name,
+    assetId: it.assetId,
+    description: it.description,
+    quantity: it.quantity,
+    insured: it.insured,
+    archived: it.archived,
+    createdAt: it.createdAt,
+    updatedAt: it.updatedAt,
+    purchasePrice: it.purchasePrice,
+    soldTime: it.soldTime,
+    tags: it.tags,
+    imageId: it.imageId,
+    thumbnailId: it.thumbnailId,
+    location: it.location,
+  }];
+});
 
 async function deleteItem() {
   if (!item.value) return;
@@ -461,6 +485,10 @@ function formatDate(date: Date | string | undefined): string {
       <NiimbotPrintSection type="item" :id="itemId" />
 
       <div class="flex gap-2 pt-2">
+        <Button variant="outline" class="flex-1 gap-2" @click="showMoveScanner = true">
+          <ScanLine class="w-4 h-4" />
+          Переместить
+        </Button>
         <Button variant="outline" class="flex-1 gap-2" @click="duplicateItem">
           <Copy class="w-4 h-4" />
           Копировать
@@ -498,6 +526,14 @@ function formatDate(date: Date | string | undefined): string {
           if (!item) return;
           item.attachments = item.attachments.filter(a => a.id !== id);
         }"
+      />
+
+      <MoveScannerSheet
+        :open="showMoveScanner"
+        :preload-items="moveScannerPreload"
+        :force-queue-mode="true"
+        @update:open="showMoveScanner = $event"
+        @done="fetchItem()"
       />
     </template>
   </div>
