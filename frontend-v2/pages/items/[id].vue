@@ -127,6 +127,8 @@ const visibleAttachmentViews = computed(() =>
   showAllAttachments.value ? attachmentViews.value : attachmentViews.value.slice(0, 4),
 );
 
+const showAttachmentsSheet = ref(false);
+
 // === Inline Edit State ===
 const editingSection = ref<string | null>(null);
 
@@ -380,6 +382,14 @@ function formatDate(date: Date | string | undefined): string {
       </ItemDetailSection>
 
       <ItemDetailSection v-if="item.attachments?.length" title="Файлы" collapsible>
+        <template #header-actions>
+          <button
+            class="px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            @click="showAttachmentsSheet = true"
+          >
+            Управлять
+          </button>
+        </template>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
           <a
             v-for="att in visibleAttachmentViews"
@@ -465,6 +475,13 @@ function formatDate(date: Date | string | undefined): string {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ItemAttachmentsSheet
+        :open="showAttachmentsSheet"
+        :item-id="item.id"
+        :attachments="item.attachments ?? []"
+        @update:open="showAttachmentsSheet = $event"
+      />
     </template>
   </div>
 </template>
