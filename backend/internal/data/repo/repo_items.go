@@ -460,8 +460,9 @@ func (e *ItemsRepository) QueryByGroup(ctx context.Context, gid uuid.UUID, q Ite
 				locRepo := &LocationRepository{db: e.db}
 				expanded, err := locRepo.GetDescendantLocationIDs(ctx, gid, q.LocationIDs)
 				if err != nil {
-					log.Warn().Err(err).Msg("failed to expand descendant locations, falling back to direct match")
-				} else if len(expanded) > 0 {
+					return PaginationResult[ItemSummary]{}, fmt.Errorf("expand descendant locations: %w", err)
+				}
+				if len(expanded) > 0 {
 					ids = expanded
 				}
 			}

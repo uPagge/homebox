@@ -1,7 +1,7 @@
 import { ref, type Ref } from "vue";
 import type { LocationSummary, TreeItem } from "~~/lib/api/types/data-contracts";
 
-export type FlatLocationNode = {
+type FlatLocationNode = {
   id: string;
   name: string;
   parentId: string | null;
@@ -66,7 +66,11 @@ async function ensureLoaded() {
       if (resp.data) {
         tree.value = resp.data;
         byId.value = flatten(resp.data);
+      } else if (resp.error) {
+        console.warn("[useLocationTree] tree fetch returned error", resp.error);
       }
+    } catch (err) {
+      console.warn("[useLocationTree] tree fetch threw", err);
     } finally {
       loading.value = false;
       pending = null;
@@ -118,7 +122,6 @@ export function useLocationTree() {
 
   return {
     loading,
-    getNode,
     getPath,
     getPathString,
     hasChildren,
