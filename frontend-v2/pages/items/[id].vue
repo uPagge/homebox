@@ -12,7 +12,7 @@ definePageMeta({ layout: "default" });
 const route = useRoute();
 const router = useRouter();
 const api = useUserApi();
-const { attachmentUrl: makeAttachmentUrl, thumbnailUrl: makeThumbnailUrl } = useAttachmentUrl();
+const { attachmentUrl: makeAttachmentUrl } = useAttachmentUrl();
 const itemId = computed(() => route.params.id as string);
 
 const item = ref<ItemOut | null>(null);
@@ -93,12 +93,39 @@ async function deleteItem() {
   router.push("/items");
 }
 
-// Attachments display limit
-const showAllAttachments = ref(false);
-const visibleAttachments = computed(() => {
+// Attachments display
+type AttachmentView = {
+  id: string;
+  title: string;
+  primary: boolean;
+  isPhoto: boolean;
+  url: string;
+  thumbnailUrl: string | null;
+};
+
+const attachmentViews = computed<AttachmentView[]>(() => {
   if (!item.value?.attachments) return [];
-  return showAllAttachments.value ? item.value.attachments : item.value.attachments.slice(0, 4);
+  const itemIdLocal = item.value.id;
+  return item.value.attachments.map(att => {
+    const isPhoto = att.type === "photo";
+    const url = makeAttachmentUrl(itemIdLocal, att.id);
+    const thumbId = att.thumbnail?.id;
+    const thumbnailUrl = isPhoto ? (thumbId ? makeAttachmentUrl(itemIdLocal, thumbId) : url) : null;
+    return {
+      id: att.id,
+      title: att.title,
+      primary: att.primary,
+      isPhoto,
+      url,
+      thumbnailUrl,
+    };
+  });
 });
+
+const showAllAttachments = ref(false);
+const visibleAttachmentViews = computed(() =>
+  showAllAttachments.value ? attachmentViews.value : attachmentViews.value.slice(0, 4),
+);
 
 // === Inline Edit State ===
 const editingSection = ref<string | null>(null);
@@ -354,19 +381,42 @@ function formatDate(date: Date | string | undefined): string {
 
       <ItemDetailSection v-if="item.attachments?.length" title="Файлы" collapsible>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          <div
-            v-for="att in visibleAttachments"
+          <a
+            v-for="att in visibleAttachmentViews"
             :key="att.id"
-            class="relative aspect-square rounded-lg overflow-hidden bg-muted/30 border border-border"
+            :href="att.url"
+            target="_blank"
+            rel="noopener"
+            :title="att.title"
+            class="relative aspect-square rounded-lg overflow-hidden bg-muted/30 border border-border hover:border-primary/50 transition-colors"
           >
             <img
-              src="https://placehold.co/64x64/png"
+              v-if="att.isPhoto && att.thumbnailUrl"
+              :src="att.thumbnailUrl"
+              :alt="att.title"
               class="w-full h-full object-cover"
               loading="lazy"
               decoding="async"
             />
-          </div>
+            <div v-else class="w-full h-full flex flex-col items-center justify-center p-2 gap-1">
+              <Paperclip class="w-5 h-5 text-muted-foreground shrink-0" />
+              <span class="text-[10px] text-muted-foreground truncate w-full text-center">{{ att.title }}</span>
+            </div>
+            <div
+              v-if="att.primary"
+              class="absolute top-1 right-1 p-0.5 bg-amber-500 rounded-full"
+            >
+              <Star class="w-3 h-3 text-white fill-white" />
+            </div>
+          </a>
         </div>
+        <button
+          v-if="attachmentViews.length > 4"
+          class="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          @click="showAllAttachments = !showAllAttachments"
+        >
+          {{ showAllAttachments ? "Свернуть" : `Показать все (${attachmentViews.length})` }}
+        </button>
       </ItemDetailSection>
 
       <ItemDetailSection v-if="item.fields?.length" title="Поля" collapsible>
