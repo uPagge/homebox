@@ -28,3 +28,26 @@ export function parseHomeboxUrl(text: string): string | null {
   if (!target) return null;
   return `/${target}/${m[2]}`;
 }
+
+export type HomeboxTarget = { kind: "item" | "location"; id: string };
+
+/**
+ * Strict variant of parseHomeboxUrl scoped to Move Scanner: returns only items
+ * and locations as a discriminated union. Labels/tags are rejected.
+ */
+export function parseHomeboxTarget(text: string): HomeboxTarget | null {
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return null;
+  }
+  const m = url.pathname.match(PATH_RX);
+  if (!m) return null;
+  const target = SEGMENT_TO_V2[m[1]!.toLowerCase()];
+  if (target !== "items" && target !== "locations") return null;
+  return {
+    kind: target === "items" ? "item" : "location",
+    id: m[2]!.toLowerCase(),
+  };
+}

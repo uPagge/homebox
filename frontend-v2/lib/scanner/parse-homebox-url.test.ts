@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseHomeboxUrl } from "./parse-homebox-url";
+import { parseHomeboxUrl, parseHomeboxTarget } from "./parse-homebox-url";
 
 const UUID = "12345678-1234-1234-1234-123456789abc";
 
@@ -89,5 +89,55 @@ describe("parseHomeboxUrl", () => {
       expect(parseHomeboxUrl(`https://h.local/assets/${UUID}`)).toBeNull();
       expect(parseHomeboxUrl(`https://h.local/a/${UUID}`)).toBeNull();
     });
+  });
+});
+
+describe("parseHomeboxTarget", () => {
+  it("returns kind=item for /items/<uuid>", () => {
+    expect(parseHomeboxTarget(`https://h.local/items/${UUID}`))
+      .toEqual({ kind: "item", id: UUID });
+  });
+
+  it("returns kind=location for /locations/<uuid>", () => {
+    expect(parseHomeboxTarget(`https://h.local/locations/${UUID}`))
+      .toEqual({ kind: "location", id: UUID });
+  });
+
+  it("rewrites legacy /item/ to kind=item", () => {
+    expect(parseHomeboxTarget(`https://h.local/item/${UUID}`))
+      .toEqual({ kind: "item", id: UUID });
+  });
+
+  it("rewrites legacy /location/ to kind=location", () => {
+    expect(parseHomeboxTarget(`https://h.local/location/${UUID}`))
+      .toEqual({ kind: "location", id: UUID });
+  });
+
+  it("returns null for /labels/ — Move Scanner doesn't act on labels", () => {
+    expect(parseHomeboxTarget(`https://h.local/labels/${UUID}`)).toBeNull();
+  });
+
+  it("returns null for /tags/ — same reason", () => {
+    expect(parseHomeboxTarget(`https://h.local/tags/${UUID}`)).toBeNull();
+  });
+
+  it("ignores host", () => {
+    expect(parseHomeboxTarget(`http://192.168.0.99:7745/items/${UUID}`))
+      .toEqual({ kind: "item", id: UUID });
+  });
+
+  it("normalises uppercase UUID to lowercase", () => {
+    const upper = UUID.toUpperCase();
+    expect(parseHomeboxTarget(`https://h.local/items/${upper}`))
+      .toEqual({ kind: "item", id: UUID });
+  });
+
+  it("returns null for non-URL text", () => {
+    expect(parseHomeboxTarget("not a url")).toBeNull();
+    expect(parseHomeboxTarget("")).toBeNull();
+  });
+
+  it("returns null for malformed UUID", () => {
+    expect(parseHomeboxTarget(`https://h.local/items/not-a-uuid`)).toBeNull();
   });
 });
