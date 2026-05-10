@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ChevronRight, MapPin, Pencil, Trash2, Plus, LayoutGrid, List } from "lucide-vue-next";
-import type { LocationOut } from "~~/lib/api/types/data-contracts";
-import type { ItemSummary } from "~~/lib/api/types/data-contracts";
+import { ChevronRight, MapPin, Pencil, Trash2, Plus, LayoutGrid, List, Layers } from "lucide-vue-next";
+import { useLocalStorage } from "@vueuse/core";
+import type { LocationOut, ItemSummary } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
 
 definePageMeta({ layout: "default" });
@@ -9,8 +9,12 @@ definePageMeta({ layout: "default" });
 const route = useRoute();
 const router = useRouter();
 const api = useUserApi();
+const tree = useLocationTree();
 
 const locationId = computed(() => route.params.id as string);
+
+// Recursive toggle — persisted globally, single key.
+const recursive = useLocalStorage<boolean>("items-recursive", true);
 
 // Location data
 const location = ref<LocationOut | null>(null);
@@ -26,7 +30,7 @@ async function fetchLocation() {
   }
 }
 
-// Items in this location
+// Items in this location (and optionally its descendants)
 const items = ref<ItemSummary[]>([]);
 const totalItems = ref(0);
 const page = ref(1);
@@ -40,6 +44,7 @@ async function fetchItems() {
       locations: [locationId.value],
       page: page.value,
       pageSize,
+      recursive: recursive.value,
     });
     if (resp.data) {
       items.value = resp.data.items;
@@ -56,6 +61,13 @@ function setPage(p: number) {
   page.value = p;
   fetchItems();
 }
+
+watch(recursive, () => {
+  page.value = 1;
+  fetchItems();
+});
+
+const canBeRecursive = computed(() => tree.hasChildren(locationId.value));
 
 // View mode
 const preferences = useViewPreferences();
@@ -92,6 +104,7 @@ async function saveEdit() {
   if (resp.data) {
     location.value = resp.data;
     editing.value = false;
+    tree.invalidate();
     toast.success("Локация обновлена");
   }
 }
@@ -107,6 +120,7 @@ async function confirmDelete() {
   if (!location.value) return;
   const resp = await api.locations.delete(location.value.id);
   if (!resp.error) {
+    tree.invalidate();
     toast.success("Локация удалена");
     router.push("/locations");
   } else {
@@ -120,6 +134,7 @@ const showCreateChild = ref(false);
 
 function handleChildCreated() {
   showCreateChild.value = false;
+  tree.invalidate();
   fetchLocation();
 }
 
@@ -242,12 +257,25 @@ watch(locationId, () => {
 
       <!-- Items section -->
       <section>
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-3 gap-2">
           <h2 class="text-sm font-medium">
             Предметы
             <span class="text-muted-foreground font-normal">({{ totalItems }})</span>
           </h2>
           <div class="flex items-center gap-1">
+            <button
+              class="p-1.5 rounded-md transition-colors flex items-center gap-1 text-xs"
+              :class="[
+                recursive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent',
+                !canBeRecursive ? 'opacity-40 cursor-not-allowed' : '',
+              ]"
+              :disabled="!canBeRecursive"
+              :title="canBeRecursive ? 'Включая вложенные локации' : 'Нет вложенных локаций'"
+              @click="canBeRecursive && (recursive = !recursive)"
+            >
+              <Layers class="w-4 h-4" />
+              <span class="hidden sm:inline">Включая вложенные</span>
+            </button>
             <button
               class="p-1.5 rounded-md transition-colors"
               :class="viewMode === 'card' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent'"
@@ -273,9 +301,17 @@ watch(locationId, () => {
         <!-- Empty -->
         <div
           v-else-if="!loadingItems && items.length === 0"
-          class="text-center py-8 text-sm text-muted-foreground"
+          class="text-center py-8 text-sm text-muted-foreground space-y-3"
         >
-          В этой локации пока нет предметов
+          <p>В этой локации пока нет предметов</p>
+          <button
+            v-if="!recursive && canBeRecursive"
+            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors"
+            @click="recursive = true"
+          >
+            <Layers class="w-3.5 h-3.5" />
+            Показать из вложенных локаций
+          </button>
         </div>
 
         <!-- Grid view -->
@@ -287,6 +323,7 @@ watch(locationId, () => {
             v-for="item in items"
             :key="item.id"
             :item="item"
+            :current-location-id="locationId"
             @quantity-update="handleQuantityUpdate"
           />
         </div>
@@ -297,6 +334,7 @@ watch(locationId, () => {
             v-for="item in items"
             :key="item.id"
             :item="item"
+            :current-location-id="locationId"
             @quantity-update="handleQuantityUpdate"
           />
         </div>
