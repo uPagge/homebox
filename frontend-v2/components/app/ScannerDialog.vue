@@ -115,6 +115,19 @@ async function retry(): Promise<void> {
           </div>
         </div>
 
+        <!-- Camera selector — only when there's a real choice -->
+        <div v-if="!scanner.result.value && !scanner.error.value && scanner.devices.value.length > 1" class="absolute left-1/2 -translate-x-1/2 bottom-4 w-[90%] max-w-sm">
+          <select
+            class="w-full px-3 py-2 bg-card/90 text-foreground rounded-md text-sm border"
+            :value="scanner.selectedDeviceId.value ?? ''"
+            @change="(e) => scanner.selectDevice((e.target as HTMLSelectElement).value)"
+          >
+            <option v-for="d in scanner.devices.value" :key="d.deviceId" :value="d.deviceId">
+              {{ d.label || `Камера ${d.deviceId.slice(0, 6)}` }}
+            </option>
+          </select>
+        </div>
+
         <!-- Result overlay -->
         <div v-if="scanner.result.value" class="absolute inset-x-0 bottom-0 p-4 bg-card/95 border-t flex flex-col gap-3">
           <p class="text-xs text-muted-foreground">Результат:</p>
