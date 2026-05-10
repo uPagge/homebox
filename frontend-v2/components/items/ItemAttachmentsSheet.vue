@@ -171,7 +171,13 @@ function labelForType(type: string): string {
 </script>
 
 <template>
-  <Drawer :open="open" @update:open="emit('update:open', $event)">
+  <Drawer
+    :open="open"
+    @update:open="(v: boolean) => {
+      if (!v && (uploading || savingId !== null || deletingId !== null)) return;
+      emit('update:open', v);
+    }"
+  >
     <DrawerContent>
       <DrawerHeader>
         <DrawerTitle>Файлы ({{ attachments.length }})</DrawerTitle>

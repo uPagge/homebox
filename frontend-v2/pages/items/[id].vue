@@ -429,6 +429,18 @@ function formatDate(date: Date | string | undefined): string {
         </button>
       </ItemDetailSection>
 
+      <ItemDetailSection v-else title="Файлы">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm text-muted-foreground">Файлов нет</span>
+          <button
+            class="px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            @click="showAttachmentsSheet = true"
+          >
+            Загрузить
+          </button>
+        </div>
+      </ItemDetailSection>
+
       <ItemDetailSection v-if="item.fields?.length" title="Поля" collapsible>
         <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <div v-for="field in item.fields" :key="field.id">
