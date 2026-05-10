@@ -27,23 +27,27 @@ async function uploadFile(file: File, type: AttachmentTypes) {
   try {
     const resp = await api.items.attachments.add(props.itemId, file, file.name, type);
     if (resp.error || !resp.data) {
-      toast.error("Не удалось загрузить файл");
+      toast.error(resp.status === 413 ? "Файл слишком большой" : "Не удалось загрузить файл");
       return;
     }
     emit("updated", resp.data);
     toast.success("Файл загружен");
   } catch {
-    toast.error("Не удалось загрузить файл");
+    toast.error("Нет связи с сервером");
   } finally {
     uploading.value = false;
   }
 }
 
 async function onPhotoPick(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0];
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
   if (!file) return;
-  await uploadFile(file, AttachmentTypes.Photo);
-  if (photoInput.value) photoInput.value.value = "";
+  try {
+    await uploadFile(file, AttachmentTypes.Photo);
+  } finally {
+    input.value = "";
+  }
 }
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -87,7 +91,7 @@ const editForm = reactive({
   primary: false,
 });
 
-function toggleExpand(att: ItemAttachment) {
+async function toggleExpand(att: ItemAttachment) {
   if (expandedId.value === att.id) {
     expandedId.value = null;
     return;
@@ -96,6 +100,10 @@ function toggleExpand(att: ItemAttachment) {
   editForm.title = att.title;
   editForm.type = att.type as AttachmentTypes;
   editForm.primary = att.primary;
+  await nextTick();
+  document
+    .querySelector(`[data-attachment-row="${att.id}"]`)
+    ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 watch(() => editForm.type, (t) => {
@@ -109,7 +117,7 @@ async function saveEdit(att: ItemAttachment) {
     const resp = await api.items.attachments.update(props.itemId, att.id, {
       title: editForm.title,
       type: editForm.type,
-      primary: editForm.primary,
+      primary: editForm.type === AttachmentTypes.Photo && editForm.primary,
     });
     if (resp.error || !resp.data) {
       toast.error("Не удалось сохранить");
@@ -119,7 +127,7 @@ async function saveEdit(att: ItemAttachment) {
     expandedId.value = null;
     toast.success("Сохранено");
   } catch {
-    toast.error("Не удалось сохранить");
+    toast.error("Нет связи с сервером");
   } finally {
     savingId.value = null;
   }
@@ -142,7 +150,7 @@ async function confirmDelete() {
     expandedId.value = null;
     toast.success("Удалено");
   } catch {
-    toast.error("Не удалось удалить");
+    toast.error("Нет связи с сервером");
   } finally {
     deletingId.value = null;
     deleteConfirmFor.value = null;
@@ -254,7 +262,7 @@ function labelForType(type: string): string {
         </div>
 
         <ul v-if="attachments.length" class="border border-border rounded-lg overflow-hidden divide-y divide-border">
-          <li :key="att.id" class="bg-card" v-for="att in attachments">
+          <li :key="att.id" :data-attachment-row="att.id" class="bg-card" v-for="att in attachments">
             <button
               class="w-full flex items-center gap-3 p-3 text-left hover:bg-accent/40 transition-colors"
               @click="toggleExpand(att)"
@@ -312,9 +320,9 @@ function labelForType(type: string): string {
                 />
               </div>
 
-              <div class="flex gap-2">
+              <div class="flex flex-wrap gap-2">
                 <Button
-                  class="flex-1"
+                  class="flex-1 min-w-[7rem]"
                   :disabled="!editForm.title.trim() || savingId === att.id"
                   @click="saveEdit(att)"
                 >
