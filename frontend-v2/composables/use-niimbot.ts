@@ -160,9 +160,9 @@ export function useNiimbot() {
       const trimmed = trimWhitespace(img);
       // Pad with a small white margin so the QR finder patterns survive
       // Niimbot's ±0.3–0.5 mm feed drift (≈2–4 dots @ 203 DPI) and ZXing
-      // still has at least ~2 modules of quiet zone to lock onto. 16 source
-      // pixels lands at ~12 final px after the resize-to-label step.
-      const cropped = padCanvasWhite(trimmed, 16);
+      // still has ≥2 modules of quiet zone to lock onto. 24 source pixels
+      // lands at ~17 final px after the resize-to-label step.
+      const cropped = padCanvasWhite(trimmed, 24);
 
       // Auto-rotate if orientation mismatch
       const imgIsLandscape = cropped.width > cropped.height;
