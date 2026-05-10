@@ -29,7 +29,6 @@ export type ItemsQuery = {
   parentIds?: string[];
   q?: string;
   fields?: string[];
-  recursive?: boolean;
 };
 
 export class AttachmentsAPI extends BaseAPI {

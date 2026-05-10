@@ -47,7 +47,6 @@ type (
 		ParentItemIDs    []uuid.UUID  `json:"parentIds"`
 		SortBy           string       `json:"sortBy"`
 		IncludeArchived  bool         `json:"includeArchived"`
-		Recursive        bool         `json:"recursive"`
 		Fields           []FieldQuery `json:"fields"`
 		OrderBy          string       `json:"orderBy"`
 	}
@@ -455,19 +454,7 @@ func (e *ItemsRepository) QueryByGroup(ctx context.Context, gid uuid.UUID, q Ite
 		}
 
 		if len(q.LocationIDs) > 0 {
-			ids := q.LocationIDs
-			if q.Recursive {
-				locRepo := &LocationRepository{db: e.db}
-				expanded, err := locRepo.GetDescendantLocationIDs(ctx, gid, q.LocationIDs)
-				if err != nil {
-					return PaginationResult[ItemSummary]{}, fmt.Errorf("expand descendant locations: %w", err)
-				}
-				if len(expanded) > 0 {
-					ids = expanded
-				}
-			}
-
-			locationPredicates := lo.Map(ids, func(l uuid.UUID, _ int) predicate.Item {
+			locationPredicates := lo.Map(q.LocationIDs, func(l uuid.UUID, _ int) predicate.Item {
 				return item.HasLocationWith(location.ID(l))
 			})
 

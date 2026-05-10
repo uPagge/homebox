@@ -113,6 +113,25 @@ export function useLocationTree() {
     return getNode(id)?.hasChildren ?? false;
   }
 
+  // Returns rootId itself plus every descendant. Empty array if rootId is
+  // unknown (e.g. tree not loaded yet) — caller should fall back.
+  function getDescendantIds(rootId: string | undefined | null): string[] {
+    if (!rootId) return [];
+    const out: string[] = [];
+    for (const node of byId.value.values()) {
+      if (node.id === rootId || node.ancestors.some(a => a.id === rootId)) {
+        out.push(node.id);
+      }
+    }
+    return out;
+  }
+
+  // Resolves once the tree has been fetched (success or failure). Lets callers
+  // wait before computing path / descendants on first render.
+  function ready(): Promise<void> {
+    return ensureLoaded() ?? Promise.resolve();
+  }
+
   function invalidate() {
     tree.value = null;
     byId.value = new Map();
@@ -125,6 +144,8 @@ export function useLocationTree() {
     getPath,
     getPathString,
     hasChildren,
+    getDescendantIds,
+    ready,
     invalidate,
   };
 }

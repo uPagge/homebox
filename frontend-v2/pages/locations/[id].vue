@@ -40,11 +40,20 @@ const loadingItems = ref(false);
 async function fetchItems() {
   loadingItems.value = true;
   try {
+    let locations: string[] = [locationId.value];
+    if (recursive.value) {
+      // Wait for tree before expanding — first paint after navigation may
+      // arrive before /v1/locations/tree resolves.
+      await tree.ready();
+      const subtree = tree.getDescendantIds(locationId.value);
+      if (subtree.length > 0) {
+        locations = subtree;
+      }
+    }
     const resp = await api.items.getAll({
-      locations: [locationId.value],
+      locations,
       page: page.value,
       pageSize,
-      recursive: recursive.value,
     });
     if (resp.data) {
       items.value = resp.data.items;
