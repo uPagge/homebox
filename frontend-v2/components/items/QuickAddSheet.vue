@@ -155,6 +155,7 @@ async function save(addNext: boolean) {
           quantity: 1,
           description: description.value,
           tagIds: [],
+          parentId: parentId.value || undefined,
         });
         if (resp.error) {
           toast.error(`Не удалось создать вещь (${i + 1}/${quantity.value})`);
@@ -178,6 +179,7 @@ async function save(addNext: boolean) {
         quantity: quantity.value,
         description: description.value,
         tagIds: [],
+        parentId: parentId.value || undefined,
       });
 
       if (resp.error) {
@@ -204,6 +206,9 @@ async function save(addNext: boolean) {
       description.value = "";
       showMore.value = false;
       removePhoto();
+      clearParent();
+      parentSearch.value = "";
+      parentResults.value = [];
     } else {
       resetAndClose();
     }
@@ -221,6 +226,9 @@ function resetAndClose() {
   showMore.value = false;
   locationSearch.value = "";
   removePhoto();
+  clearParent();
+  parentSearch.value = "";
+  parentResults.value = [];
   emit("update:open", false);
 }
 </script>
