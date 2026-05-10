@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
-import { Lightbulb } from "lucide-vue-next";
+import { Lightbulb, ChevronsUpDown, Check } from "lucide-vue-next";
 
 const props = defineProps<{
   open: boolean;
@@ -14,13 +13,14 @@ const emit = defineEmits<{
 }>();
 
 const api = useUserApi();
+const tree = useLocationTree();
 
 const name = ref("");
 const description = ref("");
 const selectedParentId = ref<string>(props.parentId ?? "");
 const saving = ref(false);
 
-const suggest = useLocationNameSuggest(name, selectedParentId);
+const suggest = useLocationNameSuggest(name);
 
 function applySuggestion() {
   const s = suggest.value.suggestion;
@@ -31,17 +31,36 @@ function applySuggestion() {
   document.getElementById("loc-desc")?.focus();
 }
 
-// Load all locations for parent picker
-const allLocations = ref<LocationOutCount[]>([]);
-async function loadLocations() {
-  const resp = await api.locations.getAll({ filterChildren: false });
-  if (resp.data) allLocations.value = resp.data;
+// Parent picker — searchable inline list with full hierarchy paths.
+const parentPickerOpen = ref(false);
+const parentSearch = ref("");
+
+const parentOptions = computed(() => tree.getAll());
+
+const filteredParentOptions = computed(() => {
+  const q = parentSearch.value.trim().toLocaleLowerCase();
+  if (!q) return parentOptions.value;
+  return parentOptions.value.filter(loc =>
+    loc.pathString.toLocaleLowerCase().includes(q)
+  );
+});
+
+const selectedParentLabel = computed(() => {
+  if (!selectedParentId.value) return "Без родителя (корневая)";
+  return tree.getPathString(selectedParentId.value) ?? "—";
+});
+
+function selectParent(id: string) {
+  selectedParentId.value = id;
+  parentPickerOpen.value = false;
+  parentSearch.value = "";
 }
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
-    loadLocations();
     selectedParentId.value = props.parentId ?? "";
+    parentPickerOpen.value = false;
+    parentSearch.value = "";
   }
 });
 
@@ -65,6 +84,7 @@ async function save() {
     }
 
     toast.success(`«${name.value}» создана`);
+    tree.invalidate();
     resetAndClose();
     emit("created");
   } finally {
@@ -76,6 +96,8 @@ function resetAndClose() {
   name.value = "";
   description.value = "";
   selectedParentId.value = "";
+  parentPickerOpen.value = false;
+  parentSearch.value = "";
   emit("update:open", false);
 }
 </script>
@@ -108,16 +130,16 @@ function resetAndClose() {
         >
           <div class="flex items-center gap-1.5 text-xs font-medium text-primary">
             <Lightbulb class="w-3.5 h-3.5" />
-            <span v-if="suggest.parentName">Уже есть в «{{ suggest.parentName }}»:</span>
-            <span v-else>Уже создано:</span>
+            <span>Уже создано:</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             <span
               v-for="loc in suggest.existing"
               :key="loc.id"
               class="px-2 py-0.5 bg-card border border-border rounded-md text-xs"
+              :title="loc.pathString"
             >
-              {{ loc.name }}
+              {{ loc.pathString || loc.name }}
             </span>
           </div>
           <div class="flex items-center gap-2 pt-1">
@@ -144,19 +166,63 @@ function resetAndClose() {
           />
         </div>
 
-        <!-- Parent location -->
+        <!-- Parent location — searchable picker -->
         <div>
-          <label class="text-sm font-medium" for="loc-parent">Родительская локация</label>
-          <select
-            id="loc-parent"
-            v-model="selectedParentId"
-            class="mt-1 w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          <label class="text-sm font-medium">Родительская локация</label>
+          <button
+            type="button"
+            class="mt-1 w-full px-3 py-2 bg-card border border-input rounded-lg text-sm flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-ring"
+            @click="parentPickerOpen = !parentPickerOpen"
           >
-            <option value="">Без родителя (корневая)</option>
-            <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
-              {{ loc.name }}
-            </option>
-          </select>
+            <span class="truncate text-left" :class="!selectedParentId && 'text-muted-foreground'">
+              {{ selectedParentLabel }}
+            </span>
+            <ChevronsUpDown class="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
+          </button>
+
+          <div
+            v-if="parentPickerOpen"
+            class="mt-1 border border-input rounded-lg bg-card overflow-hidden"
+          >
+            <div class="p-2 border-b border-border">
+              <input
+                v-model="parentSearch"
+                type="text"
+                placeholder="Поиск..."
+                class="w-full px-2 py-1.5 bg-background border border-input rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <div class="max-h-56 overflow-y-auto py-1">
+              <button
+                type="button"
+                class="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                :class="!selectedParentId && 'bg-accent/50'"
+                @click="selectParent('')"
+              >
+                <Check v-if="!selectedParentId" class="w-3.5 h-3.5 text-primary" />
+                <span v-else class="w-3.5 h-3.5 shrink-0" />
+                <span>Без родителя (корневая)</span>
+              </button>
+              <button
+                v-for="loc in filteredParentOptions"
+                :key="loc.id"
+                type="button"
+                class="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                :class="selectedParentId === loc.id && 'bg-accent/50'"
+                @click="selectParent(loc.id)"
+              >
+                <Check v-if="selectedParentId === loc.id" class="w-3.5 h-3.5 text-primary" />
+                <span v-else class="w-3.5 h-3.5 shrink-0" />
+                <span class="truncate">{{ loc.pathString }}</span>
+              </button>
+              <div
+                v-if="filteredParentOptions.length === 0 && parentSearch"
+                class="px-3 py-3 text-sm text-muted-foreground"
+              >
+                Ничего не найдено
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Actions -->

@@ -142,6 +142,19 @@ export function useLocationTree() {
     return getNode(id)?.name ?? null;
   }
 
+  // Returns every flat node in the tree, sorted by full path. Used by features
+  // that need a flat list with hierarchy hints (e.g. parent pickers, global
+  // name auto-suggest).
+  function getAll(): { id: string; name: string; pathString: string }[] {
+    const out = Array.from(byId.value.values()).map(n => ({
+      id: n.id,
+      name: n.name,
+      pathString: n.pathString,
+    }));
+    out.sort((a, b) => a.pathString.localeCompare(b.pathString));
+    return out;
+  }
+
   // Resolves once the tree has been fetched (success or failure). Lets callers
   // wait before computing path / descendants on first render.
   function ready(): Promise<void> {
@@ -163,6 +176,7 @@ export function useLocationTree() {
     getDescendantIds,
     getSiblings,
     getName,
+    getAll,
     ready,
     invalidate,
   };

@@ -29,6 +29,10 @@ export function parseNumberedName(input: string): ParsedName | null {
 export interface SiblingLite {
   id: string;
   name: string;
+  // Optional full hierarchy path ("Гараж › Шкаф › Коробка 1"). Live UI uses
+  // it for chips so colliding leaves under different parents are
+  // distinguishable; tests and other callers can omit it.
+  pathString?: string;
 }
 
 export interface NameSuggestion {
@@ -102,16 +106,17 @@ export function computeSuggestion(
   };
 }
 
+// Suggest scope is global: matches the user's mental model of a single
+// sequential numbering across the whole DB (e.g. «Коробка N» wherever it
+// lives). The parent picker no longer narrows the suggestion — it only
+// determines where the new location will be placed. Siblings-only scope is
+// preserved as `tree.getSiblings(...)` for future call sites that may want it.
 export function useLocationNameSuggest(
   name: Ref<string>,
-  parentId: Ref<string>,
 ): ComputedRef<SuggestState> {
   const tree = useLocationTree();
 
   return computed(() => {
-    const pid = parentId.value || null;
-    const siblings = tree.getSiblings(pid);
-    const parentName = pid ? tree.getName(pid) : null;
-    return computeSuggestion(name.value, siblings, parentName);
+    return computeSuggestion(name.value, tree.getAll(), null);
   });
 }
