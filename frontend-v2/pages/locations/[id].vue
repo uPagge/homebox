@@ -37,36 +37,36 @@ const page = ref(1);
 const pageSize = 25;
 const loadingItems = ref(false);
 
-// Tracks the locations[] count used on the last fetch. Lets us detect when
-// the tree resolves with descendants we didn't have synchronously, so we can
-// refetch instead of leaving stale current-only results on screen.
-let lastFetchLocationCount = 0;
-
 async function fetchItems() {
+  // Capture the route param so a rapid nav (A→B) can't let A's late response
+  // overwrite B's data after the await.
+  const fetchedFor = locationId.value;
   loadingItems.value = true;
   try {
-    let locations: string[] = [locationId.value];
+    let locations: string[] = [fetchedFor];
     if (recursive.value) {
       // Synchronous read — empty when tree isn't loaded yet. We don't await
       // tree.ready() here: blocking adds the full /locations/tree latency to
       // first paint, then sequences the /items request after it.
-      const subtree = tree.getDescendantIds(locationId.value);
+      const subtree = tree.getDescendantIds(fetchedFor);
       if (subtree.length > 1) {
         locations = subtree;
       }
     }
-    lastFetchLocationCount = locations.length;
     const resp = await api.items.getAll({
       locations,
       page: page.value,
       pageSize,
     });
+    if (locationId.value !== fetchedFor) return;
     if (resp.data) {
       items.value = resp.data.items;
       totalItems.value = resp.data.total;
     }
   } finally {
-    loadingItems.value = false;
+    if (locationId.value === fetchedFor) {
+      loadingItems.value = false;
+    }
   }
 }
 
@@ -74,14 +74,27 @@ async function fetchItems() {
 // the tree resolves. No-op refetch when the synchronous fetch already had
 // them (tree was cached or location is a leaf).
 function fetchItemsWithTreeRefine() {
+  // Capture both the route param and the initial descendant count in this
+  // closure: avoids a module-level mutable counter that interleaving calls
+  // (rapid navigation, recursive toggle) would race over.
+  const fetchedFor = locationId.value;
+  const initialCount = recursive.value
+    ? Math.max(tree.getDescendantIds(fetchedFor).length, 1)
+    : 1;
   fetchItems();
   if (!recursive.value) return;
-  void tree.ready().then(() => {
-    const expanded = tree.getDescendantIds(locationId.value);
-    if (expanded.length > lastFetchLocationCount) {
-      fetchItems();
-    }
-  });
+  tree.ready()
+    .then(() => {
+      if (locationId.value !== fetchedFor) return;
+      const expanded = tree.getDescendantIds(fetchedFor);
+      if (expanded.length > initialCount) {
+        fetchItems();
+      }
+    })
+    .catch(() => {
+      // tree.ready() catches its own fetch errors (see use-location-tree.ts).
+      // This is defensive in case the then-callback ever throws synchronously.
+    });
 }
 
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize));
