@@ -86,8 +86,7 @@ watch(() => props.open, (isOpen) => {
   }
 });
 
-// When opened with a scanned barcode, prepend it to description and force-expand "Подробнее".
-// ItemCreate API has no dedicated barcode field — see scanner design doc Risks section.
+// ItemCreate has no barcode field; embed scanned code in description.
 watch(() => props.open, (isOpen) => {
   if (isOpen && props.initialBarcode) {
     const prefix = `Штрихкод: ${props.initialBarcode}\n\n`;

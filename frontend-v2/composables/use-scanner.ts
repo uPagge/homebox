@@ -11,16 +11,19 @@ import { pickCamera } from "~/lib/scanner/pick-camera";
 
 const STORAGE_KEY = "homebox-v2/scanner-camera-id";
 
-export type ScanFormat =
+/** Formats the consumer is allowed to whitelist. */
+export type ScannableFormat =
   | "QR_CODE"
   | "EAN_13"
   | "EAN_8"
   | "UPC_A"
   | "UPC_E"
-  | "CODE_128"
-  | "OTHER";
+  | "CODE_128";
 
-export type ScanResult = { text: string; format: ScanFormat };
+/** Format reported in a result; can be `OTHER` if ZXing matched something outside the whitelist. */
+export type DetectedFormat = ScannableFormat | "OTHER";
+
+export type ScanResult = { text: string; format: DetectedFormat };
 
 export type ScannerError =
   | { kind: "permission_denied" }
@@ -29,9 +32,9 @@ export type ScannerError =
   | { kind: "init_failed"; cause: string };
 
 export interface UseScannerOptions {
-  /** ZXing format whitelist. */
-  formats: ScanFormat[];
-  /** Debounce identical scans within this window (ms). 0 disables. */
+  /** ZXing format whitelist. Non-empty tuple — at least one format required. */
+  formats: readonly [ScannableFormat, ...ScannableFormat[]];
+  /** Suppress identical scans within this window (ms). Default `0` — every decode emits. */
   duplicateDebounceMs?: number;
 }
 
@@ -51,7 +54,7 @@ export interface UseScanner {
   onResult: (cb: (r: ScanResult) => void) => () => void;
 }
 
-const FORMAT_TO_ZXING: Record<Exclude<ScanFormat, "OTHER">, BarcodeFormat> = {
+const FORMAT_TO_ZXING: Record<ScannableFormat, BarcodeFormat> = {
   QR_CODE: BarcodeFormat.QR_CODE,
   EAN_13: BarcodeFormat.EAN_13,
   EAN_8: BarcodeFormat.EAN_8,
@@ -60,7 +63,7 @@ const FORMAT_TO_ZXING: Record<Exclude<ScanFormat, "OTHER">, BarcodeFormat> = {
   CODE_128: BarcodeFormat.CODE_128,
 };
 
-function zxingToScanFormat(fmt: BarcodeFormat): ScanFormat {
+function zxingToScanFormat(fmt: BarcodeFormat): DetectedFormat {
   switch (fmt) {
     case BarcodeFormat.QR_CODE: return "QR_CODE";
     case BarcodeFormat.EAN_13: return "EAN_13";
@@ -86,13 +89,16 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
   let lastScan: { text: string; ts: number } | null = null;
   const listeners = new Set<(r: ScanResult) => void>();
 
+  // Generation counter — incremented by stop() and at the top of start()/selectDevice().
+  // Each async method captures its generation and bails after every await if superseded,
+  // preventing close-during-start races that would leak the camera (LED stays on).
+  let runId = 0;
+
   const debounceMs = opts.duplicateDebounceMs ?? 0;
 
   function buildReader(): BrowserMultiFormatReader {
     const hints = new Map();
-    const zxingFormats = opts.formats
-      .filter((f): f is Exclude<ScanFormat, "OTHER"> => f !== "OTHER")
-      .map(f => FORMAT_TO_ZXING[f]);
+    const zxingFormats = opts.formats.map(f => FORMAT_TO_ZXING[f]);
     hints.set(DecodeHintType.POSSIBLE_FORMATS, zxingFormats);
     return new BrowserMultiFormatReader(hints);
   }
@@ -101,6 +107,17 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
     if (!videoElRef) return null;
     const obj = videoElRef.srcObject;
     return obj instanceof MediaStream ? obj : null;
+  }
+
+  function stopTracksSafely(stream: MediaStream): void {
+    for (const t of stream.getTracks()) {
+      try {
+        t.stop();
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[useScanner] track.stop failed:", e);
+      }
+    }
   }
 
   function probeTorch(): void {
@@ -132,7 +149,7 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
     const out: ScanResult = { text, format: fmt };
 
     if (result.value !== null) {
-      // Notify push-style listeners; single-shot consumers ignore until reset().
+      // Single-shot consumers ignore until reset(); push-style consumers (onResult) still receive.
       listeners.forEach(cb => cb(out));
       return;
     }
@@ -155,11 +172,15 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
         console.warn("[useScanner] decode error:", err);
       }
     });
-    // Wait one tick for srcObject to settle, then probe torch capability.
+    // ZXing acquires the track asynchronously; defer to the next tick so
+    // getCapabilities() sees a live track when probing torch support.
     setTimeout(probeTorch, 100);
   }
 
   async function start(videoEl: HTMLVideoElement): Promise<void> {
+    if (isActive.value) stop();
+    const myRun = ++runId;
+
     error.value = null;
     result.value = null;
     videoElRef = videoEl;
@@ -174,8 +195,9 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
-      stream.getTracks().forEach(t => t.stop());
+      stopTracksSafely(stream);
     } catch (err) {
+      if (myRun !== runId) return;
       if (err instanceof Error && err.name === "NotAllowedError") {
         error.value = { kind: "permission_denied" };
         return;
@@ -183,15 +205,18 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
       error.value = { kind: "init_failed", cause: err instanceof Error ? err.message : String(err) };
       return;
     }
+    if (myRun !== runId) return;
 
     let allDevices: MediaDeviceInfo[];
     try {
       allDevices = (await navigator.mediaDevices.enumerateDevices())
         .filter(d => d.kind === "videoinput");
     } catch (err) {
+      if (myRun !== runId) return;
       error.value = { kind: "init_failed", cause: err instanceof Error ? err.message : String(err) };
       return;
     }
+    if (myRun !== runId) return;
 
     if (allDevices.length === 0) {
       error.value = { kind: "no_devices" };
@@ -210,23 +235,42 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
     reader = buildReader();
     try {
       await startDecodeLoop(picked.deviceId);
+      if (myRun !== runId) {
+        // Superseded after ZXing acquired the stream — release it before bailing.
+        stop();
+        return;
+      }
       isActive.value = true;
     } catch (err) {
+      const wasSuperseded = myRun !== runId;
+      stop();
+      if (wasSuperseded) return;
       error.value = { kind: "init_failed", cause: err instanceof Error ? err.message : String(err) };
     }
   }
 
   function stop(): void {
+    runId++;
     if (reader) {
-      reader.reset();
+      try {
+        reader.reset();
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[useScanner] reader.reset failed:", e);
+      }
       reader = null;
     }
     const stream = getActiveStream();
     if (stream) {
-      stream.getTracks().forEach(t => t.stop());
+      stopTracksSafely(stream);
     }
     if (videoElRef) {
-      videoElRef.srcObject = null;
+      try {
+        videoElRef.srcObject = null;
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[useScanner] clear srcObject failed:", e);
+      }
     }
     videoElRef = null;
     torchOn.value = false;
@@ -239,9 +283,18 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
 
   async function selectDevice(deviceId: string): Promise<void> {
     if (!videoElRef) return;
-    if (reader) reader.reset();
+    const myRun = ++runId;
+
+    if (reader) {
+      try {
+        reader.reset();
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[useScanner] reader.reset failed:", e);
+      }
+    }
     const stream = getActiveStream();
-    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (stream) stopTracksSafely(stream);
 
     selectedDeviceId.value = deviceId;
     if (typeof localStorage !== "undefined") {
@@ -252,7 +305,14 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
     torchOn.value = false;
     try {
       await startDecodeLoop(deviceId);
+      if (myRun !== runId) {
+        stop();
+        return;
+      }
     } catch (err) {
+      const wasSuperseded = myRun !== runId;
+      stop();
+      if (wasSuperseded) return;
       error.value = { kind: "init_failed", cause: err instanceof Error ? err.message : String(err) };
     }
   }
