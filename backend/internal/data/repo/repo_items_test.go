@@ -651,3 +651,73 @@ func TestItemsRepository_WipeInventory_OnlyItems(t *testing.T) {
 	_ = tRepos.Tags.DeleteByGroup(context.Background(), tGroup.ID, tag.ID)
 	_ = tRepos.Locations.delete(context.Background(), loc.ID)
 }
+
+func TestItemsRepository_QueryByGroup_Recursive(t *testing.T) {
+	ctx := context.Background()
+
+	garage, err := tRepos.Locations.Create(ctx, tGroup.ID, LocationCreate{
+		Name: "rec_garage_" + fk.Str(6),
+	})
+	require.NoError(t, err)
+
+	shelf, err := tRepos.Locations.Create(ctx, tGroup.ID, LocationCreate{
+		ParentID: garage.ID,
+		Name:     "rec_shelf_" + fk.Str(6),
+	})
+	require.NoError(t, err)
+
+	itm, err := tRepos.Items.Create(ctx, tGroup.ID, ItemCreate{
+		Name:       "rec_item_" + fk.Str(6),
+		LocationID: shelf.ID,
+	})
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = tRepos.Items.Delete(ctx, itm.ID)
+		_ = tRepos.Locations.delete(ctx, shelf.ID)
+		_ = tRepos.Locations.delete(ctx, garage.ID)
+	})
+
+	t.Run("recursive=false at parent returns no items", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{
+			LocationIDs: []uuid.UUID{garage.ID},
+		})
+		require.NoError(t, err)
+		assert.Empty(t, res.Items)
+	})
+
+	t.Run("recursive=true at parent returns descendant items", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{
+			LocationIDs: []uuid.UUID{garage.ID},
+			Recursive:   true,
+		})
+		require.NoError(t, err)
+		require.Len(t, res.Items, 1)
+		assert.Equal(t, itm.ID, res.Items[0].ID)
+	})
+
+	t.Run("recursive=true at leaf still returns the item", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{
+			LocationIDs: []uuid.UUID{shelf.ID},
+			Recursive:   true,
+		})
+		require.NoError(t, err)
+		require.Len(t, res.Items, 1)
+		assert.Equal(t, itm.ID, res.Items[0].ID)
+	})
+
+	t.Run("recursive=true without location filter is a no-op", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{
+			Recursive: true,
+		})
+		require.NoError(t, err)
+		found := false
+		for _, i := range res.Items {
+			if i.ID == itm.ID {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "item should be present in unfiltered list")
+	})
+}
