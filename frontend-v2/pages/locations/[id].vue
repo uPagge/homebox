@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, MapPin, Pencil, Trash2, Plus, LayoutGrid, List, Layers } from "lucide-vue-next";
+import { ChevronRight, MapPin, Pencil, Trash2, Plus, LayoutGrid, List, Layers, ScanLine } from "lucide-vue-next";
 import { useLocalStorage } from "@vueuse/core";
 import type { LocationOut, ItemSummary } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
@@ -37,19 +37,25 @@ const page = ref(1);
 const pageSize = 25;
 const loadingItems = ref(false);
 
+// Tracks the locations[] count used on the last fetch. Lets us detect when
+// the tree resolves with descendants we didn't have synchronously, so we can
+// refetch instead of leaving stale current-only results on screen.
+let lastFetchLocationCount = 0;
+
 async function fetchItems() {
   loadingItems.value = true;
   try {
     let locations: string[] = [locationId.value];
     if (recursive.value) {
-      // Wait for tree before expanding — first paint after navigation may
-      // arrive before /v1/locations/tree resolves.
-      await tree.ready();
+      // Synchronous read — empty when tree isn't loaded yet. We don't await
+      // tree.ready() here: blocking adds the full /locations/tree latency to
+      // first paint, then sequences the /items request after it.
       const subtree = tree.getDescendantIds(locationId.value);
-      if (subtree.length > 0) {
+      if (subtree.length > 1) {
         locations = subtree;
       }
     }
+    lastFetchLocationCount = locations.length;
     const resp = await api.items.getAll({
       locations,
       page: page.value,
@@ -62,6 +68,20 @@ async function fetchItems() {
   } finally {
     loadingItems.value = false;
   }
+}
+
+// Fires the items request immediately, then refetches with descendants once
+// the tree resolves. No-op refetch when the synchronous fetch already had
+// them (tree was cached or location is a leaf).
+function fetchItemsWithTreeRefine() {
+  fetchItems();
+  if (!recursive.value) return;
+  void tree.ready().then(() => {
+    const expanded = tree.getDescendantIds(locationId.value);
+    if (expanded.length > lastFetchLocationCount) {
+      fetchItems();
+    }
+  });
 }
 
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize));
@@ -122,6 +142,31 @@ function cancelEdit() {
   editing.value = false;
 }
 
+// Move scanner — preloads queue with everything in this location (and descendants
+// when recursive is on). Mirrors the descendant-expansion logic of fetchItems.
+const showMoveScanner = ref(false);
+const moveScannerPreload = ref<ItemSummary[]>([]);
+
+async function openMoveScannerFromLocation() {
+  let locations: string[] = [locationId.value];
+  if (recursive.value) {
+    await tree.ready();
+    const subtree = tree.getDescendantIds(locationId.value);
+    if (subtree.length > 1) locations = subtree;
+  }
+  const resp = await api.items.getAll({
+    locations,
+    page: 1,
+    pageSize: 1000,
+  });
+  if (resp.data) {
+    moveScannerPreload.value = resp.data.items;
+    showMoveScanner.value = true;
+  } else {
+    toast.error("Не удалось получить список");
+  }
+}
+
 // Delete
 const showDeleteDialog = ref(false);
 
@@ -150,14 +195,14 @@ function handleChildCreated(id: string) {
 // Init
 onMounted(() => {
   fetchLocation();
-  fetchItems();
+  fetchItemsWithTreeRefine();
 });
 
 // Re-fetch on route param change (navigating between locations)
 watch(locationId, () => {
   fetchLocation();
   page.value = 1;
-  fetchItems();
+  fetchItemsWithTreeRefine();
 });
 </script>
 
@@ -272,6 +317,15 @@ watch(locationId, () => {
             <span class="text-muted-foreground font-normal">({{ totalItems }})</span>
           </h2>
           <div class="flex items-center gap-1">
+            <button
+              class="p-1.5 rounded-md text-muted-foreground hover:bg-accent transition-colors"
+              :disabled="totalItems === 0"
+              :class="totalItems === 0 ? 'opacity-40 cursor-not-allowed' : ''"
+              title="Переместить отсюда сканером"
+              @click="openMoveScannerFromLocation"
+            >
+              <ScanLine class="w-4 h-4" />
+            </button>
             <button
               class="p-1.5 rounded-md transition-colors flex items-center gap-1 text-xs"
               :class="[
@@ -406,6 +460,14 @@ watch(locationId, () => {
       v-model:open="showCreateChild"
       :parent-id="locationId"
       @created="handleChildCreated"
+    />
+
+    <MoveScannerSheet
+      :open="showMoveScanner"
+      :preload-items="moveScannerPreload"
+      :force-queue-mode="true"
+      @update:open="showMoveScanner = $event"
+      @done="fetchItems(); fetchLocation()"
     />
   </div>
 </template>
