@@ -169,6 +169,29 @@ function pickLocation(loc: LocationOutCount) {
   showPicker.value = false;
   pickerSearch.value = "";
 }
+
+const showModeSwitchConfirm = ref(false);
+
+function toggleMode() {
+  const next = session.mode.value === "immediate" ? "queue" : "immediate";
+  if (next === "immediate" && session.queue.value.length > 0) {
+    showModeSwitchConfirm.value = true;
+    return;
+  }
+  session.mode.value = next;
+}
+
+async function applyAndSwitch() {
+  showModeSwitchConfirm.value = false;
+  await handleApplyQueue();
+  session.mode.value = "immediate";
+}
+
+function discardAndSwitch() {
+  showModeSwitchConfirm.value = false;
+  session.clearQueue();
+  session.mode.value = "immediate";
+}
 </script>
 
 <template>
@@ -240,7 +263,7 @@ function pickLocation(loc: LocationOutCount) {
           <span class="text-xs text-muted-foreground">{{ counterLabel }}</span>
           <button
             class="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-accent transition-colors"
-            @click="session.mode.value = session.mode.value === 'immediate' ? 'queue' : 'immediate'"
+            @click="toggleMode"
           >
             <Zap v-if="session.mode.value === 'immediate'" class="w-3.5 h-3.5" />
             <Pause v-else class="w-3.5 h-3.5" />
@@ -307,6 +330,22 @@ function pickLocation(loc: LocationOutCount) {
         <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90" @click="forceClose">
           Отбросить
         </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+  <AlertDialog v-model:open="showModeSwitchConfirm">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Переключиться в режим «Сразу»?</AlertDialogTitle>
+        <AlertDialogDescription>
+          В очереди {{ session.queue.value.length }} вещей. Применить и переключиться, или отбросить?
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Не сейчас</AlertDialogCancel>
+        <Button variant="outline" @click="discardAndSwitch">Отбросить</Button>
+        <AlertDialogAction @click="applyAndSwitch">Применить и переключить</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
