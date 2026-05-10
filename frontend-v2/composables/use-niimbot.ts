@@ -16,8 +16,6 @@ export type TapeSize = {
   height: number;
 };
 
-export type LabelVariant = "qr" | "full";
-
 export const PRESET_TAPE_SIZES: TapeSize[] = [
   { label: "30 × 20 mm", width: 30, height: 20 },
   { label: "40 × 30 mm", width: 40, height: 30 },
@@ -127,12 +125,7 @@ export function useNiimbot() {
     }
   }
 
-  async function printImage(
-    imageUrl: string,
-    tapeSize: TapeSize,
-    copies: number = 1,
-    variant: LabelVariant = "full",
-  ): Promise<void> {
+  async function printImage(imageUrl: string, tapeSize: TapeSize, copies: number = 1): Promise<void> {
     if (!client.value) {
       await connect();
       if (!client.value) return; // user cancelled
@@ -164,9 +157,7 @@ export function useNiimbot() {
 
       // Load and process label image
       const img = await loadImage(imageUrl);
-      // QR sources already include the standard quiet zone — trimming it strips
-      // the white border scanners need to detect finder patterns.
-      const cropped: HTMLImageElement | HTMLCanvasElement = variant === "qr" ? img : trimWhitespace(img);
+      const cropped = trimWhitespace(img);
 
       // Auto-rotate if orientation mismatch
       const imgIsLandscape = cropped.width > cropped.height;

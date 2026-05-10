@@ -77,7 +77,7 @@ async function handlePrint() {
     localStorage.setItem(LS_COPIES_KEY, String(copies.value));
 
     const url = getLabelImageUrl();
-    await printImage(url, tapeSize, copies.value, labelVariant.value);
+    await printImage(url, tapeSize, copies.value);
     toast.success("Печать завершена");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
