@@ -64,7 +64,7 @@ function getCurrentTapeSize(): TapeSize {
 
 function getLabelImageUrl(): string {
   if (labelVariant.value === "qr") {
-    const pageUrl = `${window.location.origin}${window.location.pathname}`;
+    const pageUrl = `${window.location.origin}/${props.type}/${props.id}`;
     return route("/qrcode", { data: pageUrl });
   }
   return route(`/labelmaker/${props.type}/${props.id}`);
