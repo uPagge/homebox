@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
-import path from "path";
+
+const projectRoot = new URL(".", import.meta.url).pathname.replace(/\/$/, "");
 
 export default defineConfig({
   test: {
@@ -9,8 +10,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "~~": path.resolve(__dirname),
-      "~": path.resolve(__dirname),
+      "~~": projectRoot,
+      "~": projectRoot,
     },
   },
 });
