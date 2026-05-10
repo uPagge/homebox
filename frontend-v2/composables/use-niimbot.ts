@@ -157,7 +157,12 @@ export function useNiimbot() {
 
       // Load and process label image
       const img = await loadImage(imageUrl);
-      const cropped = trimWhitespace(img);
+      const trimmed = trimWhitespace(img);
+      // Pad with a small white margin so the QR finder patterns survive
+      // Niimbot's ±0.3–0.5 mm feed drift (≈2–4 dots @ 203 DPI) and ZXing
+      // still has at least ~2 modules of quiet zone to lock onto. 16 source
+      // pixels lands at ~12 final px after the resize-to-label step.
+      const cropped = padCanvasWhite(trimmed, 16);
 
       // Auto-rotate if orientation mismatch
       const imgIsLandscape = cropped.width > cropped.height;
@@ -296,6 +301,18 @@ function trimWhitespace(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasEl
   if (!rctx) throw new Error("Failed to create canvas context for crop");
   rctx.drawImage(tmpCanvas, left, top, cropW, cropH, 0, 0, cropW, cropH);
   return result;
+}
+
+function padCanvasWhite(src: HTMLImageElement | HTMLCanvasElement, marginPx: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = src.width + marginPx * 2;
+  canvas.height = src.height + marginPx * 2;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Failed to create canvas context for padding");
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(src, marginPx, marginPx);
+  return canvas;
 }
 
 function rotateImage90(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
