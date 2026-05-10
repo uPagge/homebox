@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Search, Camera, X } from "lucide-vue-next";
-import type { LocationOutCount } from "~~/lib/api/types/data-contracts";
+import { useDebounceFn } from "@vueuse/core";
+import type { ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
 
 const props = defineProps<{
@@ -64,6 +65,51 @@ const selectedLocationName = computed(() => {
   const loc = locations.value.find(l => l.id === locationId.value);
   return loc?.name ?? "";
 });
+
+// Parent item picker (optional, inside "Больше подробностей")
+const parentId = ref("");
+const parentSearch = ref("");
+const parentResults = ref<ItemSummary[]>([]);
+const selectedParent = ref<ItemSummary | null>(null);
+const parentLoading = ref(false);
+let parentReqSeq = 0;
+
+const debouncedParentSearch = useDebounceFn(async (q: string) => {
+  if (!q.trim()) {
+    parentResults.value = [];
+    parentLoading.value = false;
+    return;
+  }
+  const seq = ++parentReqSeq;
+  const resp = await api.items.getAll({ q, pageSize: 10 });
+  if (seq !== parentReqSeq) return;
+  parentResults.value = resp.data?.items ?? [];
+  parentLoading.value = false;
+}, 200);
+
+watch(parentSearch, (val) => {
+  if (parentId.value) return;
+  if (!val.trim()) {
+    parentResults.value = [];
+    parentLoading.value = false;
+    parentReqSeq++;
+    return;
+  }
+  parentLoading.value = true;
+  debouncedParentSearch(val);
+});
+
+function selectParent(item: ItemSummary) {
+  selectedParent.value = item;
+  parentId.value = item.id;
+  parentSearch.value = "";
+  parentResults.value = [];
+}
+
+function clearParent() {
+  selectedParent.value = null;
+  parentId.value = "";
+}
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
