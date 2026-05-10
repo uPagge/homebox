@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Package, MapPin, Tag } from "lucide-vue-next";
+import { Package, MapPin, Tag, ScanLine } from "lucide-vue-next";
 import { useDialog, DialogID } from "@/components/ui/dialog-provider/utils";
 
 type CreateType = "item" | "location" | "label" | null;
 const showCreateMenu = ref(false);
 const showQuickMenu = ref(false);
 const activeCreate = ref<CreateType>(null);
+const initialBarcode = ref<string>("");
 const route = useRoute();
 
 // Detect current location context from URL
@@ -31,10 +32,18 @@ function onCreated() {
 }
 
 function closeCreate(open: boolean) {
-  if (!open) activeCreate.value = null;
+  if (!open) {
+    activeCreate.value = null;
+    initialBarcode.value = "";
+  }
 }
 
-const { activeDialog } = useDialog();
+function onScannedBarcode(text: string): void {
+  initialBarcode.value = text;
+  activeCreate.value = "item";
+}
+
+const { activeDialog, openDialog } = useDialog();
 
 watch(activeDialog, (id) => {
   showQuickMenu.value = id === DialogID.QuickMenu;
@@ -57,6 +66,13 @@ function onQuickMenuCreate(type: "item" | "location" | "label") {
       <header class="md:hidden sticky top-0 z-40 bg-card border-b border-border px-4 py-2.5">
         <div class="flex items-center gap-3">
           <SearchBar class="flex-1" />
+          <button
+            class="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground"
+            aria-label="Сканировать"
+            @click="openDialog(DialogID.Scanner)"
+          >
+            <ScanLine class="w-5 h-5" />
+          </button>
           <div class="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-sm">
             &#x1F464;
           </div>
@@ -121,6 +137,7 @@ function onQuickMenuCreate(type: "item" | "location" | "label") {
     <QuickAddSheet
       :open="activeCreate === 'item'"
       :context-location-id="contextLocationId"
+      :initial-barcode="initialBarcode"
       @update:open="closeCreate"
       @created="onCreated"
     />
@@ -140,5 +157,7 @@ function onQuickMenuCreate(type: "item" | "location" | "label") {
       @update:open="showQuickMenu = $event"
       @create="onQuickMenuCreate"
     />
+
+    <ScannerDialog @scanned-barcode="onScannedBarcode" />
   </div>
 </template>
