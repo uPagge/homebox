@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { X, MapPin, Zap, Pause, Layers, Trash2 } from "lucide-vue-next";
+import { toast } from "vue-sonner";
 import type { ItemSummary } from "~~/lib/api/types/data-contracts";
 import { useScanner, type ScannerError } from "~/composables/use-scanner";
+import { parseHomeboxTarget } from "~~/lib/scanner/parse-homebox-url";
 
 const props = defineProps<{
   open: boolean;
@@ -15,6 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const session = useMoveSession();
+const api = useUserApi();
 const scanner = useScanner({
   formats: ["QR_CODE"],
   duplicateDebounceMs: 1500,
@@ -76,6 +79,72 @@ const errorMessage = computed<string | null>(() => {
 
 async function retryScanner() {
   if (videoRef.value) await scanner.start(videoRef.value);
+}
+
+const lastBadScanAt = ref(0);
+
+scanner.onResult(async (r) => {
+  const target = parseHomeboxTarget(r.text);
+  if (!target) {
+    const now = Date.now();
+    if (now - lastBadScanAt.value < 2000) return;
+    lastBadScanAt.value = now;
+    toast.error("Не наш QR", { duration: 1500 });
+    return;
+  }
+  if (target.kind === "location") {
+    if (session.destination.value?.id === target.id) return;
+    const resp = await api.locations.get(target.id);
+    if (!resp.data) {
+      toast.error("Локация не найдена");
+      return;
+    }
+    session.setDestinationFromLocation(resp.data);
+    toast.success(`📍 ${resp.data.name}`, { duration: 1500 });
+    return;
+  }
+  const result = await session.scanItemId(target.id);
+  switch (result.kind) {
+    case "moved":
+      toast.success(`✓ ${result.item.name} → ${session.destination.value!.name}`, {
+        duration: 5000,
+        action: { label: "Отменить", onClick: handleUndo },
+      });
+      break;
+    case "queued":
+      toast.success(`+ ${result.item.name}`, { duration: 1500 });
+      break;
+    case "already-here":
+      toast.info(`${result.item.name} уже в ${session.destination.value!.name}`, { duration: 2000 });
+      break;
+    case "no-destination":
+      toast.warning("Сначала выберите локацию", { duration: 2000 });
+      break;
+    case "not-found":
+      toast.error("Вещь не найдена", { duration: 2000 });
+      break;
+    case "network-error":
+      toast.error("Нет сети", {
+        duration: 5000,
+        action: { label: "Повторить", onClick: () => result.retry() },
+      });
+      break;
+  }
+});
+
+async function handleUndo() {
+  const ok = await session.undoLast();
+  if (ok) toast.success("Отменено");
+  else toast.error("Не удалось отменить");
+}
+
+async function handleApplyQueue() {
+  const result = await session.applyQueue();
+  if (result.failed.length === 0) {
+    toast.success(`Перенесено ${result.ok}`);
+  } else {
+    toast.error(`Перенесено ${result.ok}, ошибок ${result.failed.length}`);
+  }
 }
 </script>
 
@@ -184,7 +253,7 @@ async function retryScanner() {
           <Button
             class="w-full"
             :disabled="!session.destination.value || session.applying.value"
-            @click="/* applyQueue — Task 4 */"
+            @click="handleApplyQueue"
           >
             <Layers class="w-4 h-4 mr-2" />
             <template v-if="session.applying.value">
