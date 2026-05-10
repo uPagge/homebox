@@ -376,6 +376,65 @@ function resetAndClose() {
               rows="3"
             />
           </div>
+
+          <!-- Parent item (optional) -->
+          <div>
+            <label class="text-sm font-medium">Родительская вещь</label>
+            <div v-if="!selectedParent" class="mt-1 relative">
+              <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                v-model="parentSearch"
+                type="text"
+                class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Поиск вещи..."
+              />
+            </div>
+            <div
+              v-if="!selectedParent && parentSearch"
+              class="mt-1 max-h-36 overflow-y-auto border border-border rounded-lg bg-card"
+            >
+              <div
+                v-if="parentLoading"
+                class="px-3 py-2 text-sm text-muted-foreground"
+              >
+                Поиск...
+              </div>
+              <button
+                v-for="item in parentResults"
+                :key="item.id"
+                class="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
+                @click="selectParent(item)"
+              >
+                <div class="text-sm">{{ item.name }}</div>
+                <div v-if="item.location?.name" class="text-xs text-muted-foreground">
+                  {{ item.location.name }}
+                </div>
+              </button>
+              <div
+                v-if="!parentLoading && parentResults.length === 0"
+                class="px-3 py-2 text-sm text-muted-foreground"
+              >
+                Ничего не найдено
+              </div>
+            </div>
+            <div
+              v-else-if="selectedParent"
+              class="mt-1 flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-lg text-sm"
+            >
+              <span class="flex-1 truncate">
+                {{ selectedParent.name }}
+                <span v-if="selectedParent.location?.name" class="text-muted-foreground">
+                  · {{ selectedParent.location.name }}
+                </span>
+              </span>
+              <button
+                class="text-muted-foreground hover:text-foreground"
+                @click="clearParent"
+              >
+                <X class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Actions -->
