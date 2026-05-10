@@ -100,7 +100,10 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
     const hints = new Map();
     const zxingFormats = opts.formats.map(f => FORMAT_TO_ZXING[f]);
     hints.set(DecodeHintType.POSSIBLE_FORMATS, zxingFormats);
-    return new BrowserMultiFormatReader(hints);
+    // TRY_HARDER lets the decoder use more CPU per frame to read small or
+    // dense codes — needed for high-density QR labels printed by Niimbot.
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    return new BrowserMultiFormatReader(hints, 200);
   }
 
   function getActiveStream(): MediaStream | null {
