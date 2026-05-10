@@ -4,6 +4,7 @@ import { toast } from "vue-sonner";
 import { Flashlight, FlashlightOff } from "lucide-vue-next";
 import { useDialog, DialogID } from "@/components/ui/dialog-provider/utils";
 import { useScanner, type ScanResult } from "~/composables/use-scanner";
+import { parseHomeboxUrl } from "~/lib/scanner/parse-homebox-url";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const emit = defineEmits<{
@@ -43,15 +44,20 @@ function handleResult(r: ScanResult): void {
   close();
 
   if (r.format === "QR_CODE") {
+    // Legacy and v2 frontends use different path conventions (/item vs /items).
+    // parseHomeboxUrl normalises both to v2 and ignores origin so old printed
+    // labels (with the legacy hostname) still navigate locally.
+    const localPath = parseHomeboxUrl(r.text);
+    if (localPath) {
+      navigateTo(localPath);
+      return;
+    }
+
     let url: URL | null = null;
     try {
-      url = new URL(r.text, window.location.origin);
+      url = new URL(r.text);
     } catch {
       url = null;
-    }
-    if (url && url.origin === window.location.origin) {
-      navigateTo(url.pathname + url.search);
-      return;
     }
     if (url) {
       toast.info(`Внешняя ссылка: ${r.text}`, {
