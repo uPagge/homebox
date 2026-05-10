@@ -32,6 +32,7 @@ import (
 //	@Param		tags		query		[]string	false	"tags Ids"		collectionFormat(multi)
 //	@Param		locations	query		[]string	false	"location Ids"	collectionFormat(multi)
 //	@Param		parentIds	query		[]string	false	"parent Ids"	collectionFormat(multi)
+//	@Param		recursive	query		bool		false	"include items from descendant locations when locations[] is set"
 //	@Success	200			{object}	repo.PaginationResult[repo.ItemSummary]{}
 //	@Router		/v1/items [GET]
 //	@Security	Bearer
@@ -63,6 +64,7 @@ func (ctrl *V1Controller) HandleItemsGetAll() errchain.HandlerFunc {
 			OnlyWithPhoto:    queryBool(params.Get("onlyWithPhoto")),
 			ParentItemIDs:    queryUUIDList(params, "parentIds"),
 			IncludeArchived:  queryBool(params.Get("includeArchived")),
+			Recursive:        queryBool(params.Get("recursive")),
 			Fields:           filterFieldItems(params["fields"]),
 			OrderBy:          params.Get("orderBy"),
 		}
