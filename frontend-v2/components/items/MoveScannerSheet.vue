@@ -253,7 +253,7 @@ function discardAndSwitch() {
           <button
             v-else
             class="flex-1 text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
-            @click="/* picker — Task 5 */"
+            @click="showPicker = true"
           >
             Выбрать локацию
           </button>
