@@ -2,6 +2,7 @@
 import { Search, Camera, X } from "lucide-vue-next";
 import { useDebounceFn } from "@vueuse/core";
 import type { ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
+import { AttachmentTypes } from "~~/lib/api/types/non-generated";
 import { toast } from "vue-sonner";
 
 const props = defineProps<{
@@ -164,7 +165,7 @@ async function save(addNext: boolean) {
         // Attach photo only to first item
         if (i === 0 && photoFile.value && resp.data) {
           try {
-            await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, "photo", true);
+            await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, AttachmentTypes.Photo, true);
           } catch {
             toast.error("Фото не загрузилось");
           }
@@ -189,7 +190,7 @@ async function save(addNext: boolean) {
 
       if (photoFile.value && resp.data) {
         try {
-          await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, "photo", true);
+          await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, AttachmentTypes.Photo, true);
         } catch {
           toast.error("Вещь создана, но фото не загрузилось");
         }
