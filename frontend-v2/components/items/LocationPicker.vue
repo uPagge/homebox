@@ -51,7 +51,11 @@ function clearSelection() {
 
 onMounted(async () => {
   const resp = await api.locations.getAll();
-  if (resp.data) locations.value = resp.data;
+  if (resp.data) {
+    locations.value = resp.data;
+  } else {
+    toast.error("Не удалось загрузить список локаций");
+  }
 });
 </script>
 

@@ -1,5 +1,13 @@
 import type { ItemOut, ItemUpdate } from "~~/lib/api/types/data-contracts";
 
+export class SplitRollbackFailedError extends Error {
+  constructor(public orphanId: string, public originalError: unknown, public rollbackError: unknown) {
+    const origMsg = originalError instanceof Error ? originalError.message : String(originalError);
+    super(`${origMsg}. Откат не удался — остался лишний item (id: ${orphanId}), удалите вручную.`);
+    this.name = "SplitRollbackFailedError";
+  }
+}
+
 export function useSplitItem() {
   const api = useUserApi();
   const processing = ref(false);
@@ -54,7 +62,7 @@ export function useSplitItem() {
         try {
           await api.items.delete(newId);
         } catch (rollbackErr) {
-          console.error("Split rollback failed: orphan item", newId, rollbackErr);
+          throw new SplitRollbackFailedError(newId, e, rollbackErr);
         }
       }
       throw e;
