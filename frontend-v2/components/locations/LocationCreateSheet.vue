@@ -56,6 +56,14 @@ function selectParent(id: string) {
   parentSearch.value = "";
 }
 
+function onScannedParent(target: { kind: "item" | "location"; id: string }) {
+  if (tree.getNode(target.id) === null) {
+    toast.error("Локация не найдена в списке");
+    return;
+  }
+  selectParent(target.id);
+}
+
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     selectedParentId.value = props.parentId ?? "";
@@ -167,19 +175,22 @@ function resetAndClose() {
           />
         </div>
 
-        <!-- Parent location — searchable picker -->
+        <!-- Parent location — searchable picker + scan -->
         <div>
           <label class="text-sm font-medium">Родительская локация</label>
-          <button
-            type="button"
-            class="mt-1 w-full px-3 py-2 bg-card border border-input rounded-lg text-sm flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-ring"
-            @click="parentPickerOpen = !parentPickerOpen"
-          >
-            <span class="truncate text-left" :class="!selectedParentId && 'text-muted-foreground'">
-              {{ selectedParentLabel }}
-            </span>
-            <ChevronsUpDown class="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
-          </button>
+          <div class="mt-1 flex gap-2">
+            <button
+              type="button"
+              class="flex-1 px-3 py-2 bg-card border border-input rounded-lg text-sm flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-ring"
+              @click="parentPickerOpen = !parentPickerOpen"
+            >
+              <span class="truncate text-left" :class="!selectedParentId && 'text-muted-foreground'">
+                {{ selectedParentLabel }}
+              </span>
+              <ChevronsUpDown class="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
+            </button>
+            <ScannerPickerButton :accepts="['location']" @picked="onScannedParent" />
+          </div>
 
           <div
             v-if="parentPickerOpen"
