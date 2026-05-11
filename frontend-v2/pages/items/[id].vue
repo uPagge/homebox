@@ -3,7 +3,7 @@ import {
   ArrowLeft, MapPin, Tag, Copy, Trash2,
   Shield, ShieldAlert, ShieldCheck,
   Paperclip, Star, ScanLine,
-  Archive, ArchiveRestore,
+  Archive, ArchiveRestore, Boxes,
 } from "lucide-vue-next";
 import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
@@ -18,6 +18,7 @@ const itemId = computed(() => route.params.id as string);
 
 const item = ref<ItemOut | null>(null);
 const loading = ref(true);
+const children = ref<ItemSummary[]>([]);
 
 async function fetchItem() {
   loading.value = true;
@@ -35,7 +36,24 @@ async function fetchItem() {
   }
 }
 
-onMounted(fetchItem);
+async function fetchChildren() {
+  try {
+    const resp = await api.items.getAll({ parentIds: [itemId.value] });
+    children.value = resp.data?.items ?? [];
+  } catch {
+    children.value = [];
+  }
+}
+
+async function handleChildQuantityUpdate(id: string, quantity: number) {
+  await api.items.patch(id, { id, quantity });
+  fetchChildren();
+}
+
+onMounted(() => {
+  fetchItem();
+  fetchChildren();
+});
 
 // Warranty color
 const warrantyStatus = computed(() => {
@@ -282,6 +300,15 @@ function formatDate(date: Date | string | undefined): string {
       </div>
 
       <div class="flex flex-wrap gap-2">
+        <NuxtLink
+          v-if="item.parent"
+          :to="`/items/${item.parent.id}`"
+          :title="`В: ${item.parent.name}`"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs hover:bg-accent hover:text-accent-foreground transition-colors max-w-[60vw]"
+        >
+          <Boxes class="w-3.5 h-3.5 shrink-0" />
+          <span class="truncate">В: {{ item.parent.name }}</span>
+        </NuxtLink>
         <div v-if="item.location" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs">
           <MapPin class="w-3.5 h-3.5" />
           {{ item.location.name }}
@@ -501,6 +528,17 @@ function formatDate(date: Date | string | undefined): string {
             </dd>
           </div>
         </dl>
+      </ItemDetailSection>
+
+      <ItemDetailSection v-if="children.length" :title="`Содержимое (${children.length})`" collapsible>
+        <div class="-mx-4 -my-4 bg-card rounded-xl overflow-hidden">
+          <ItemListRow
+            v-for="child in children"
+            :key="child.id"
+            :item="child"
+            @quantity-update="handleChildQuantityUpdate"
+          />
+        </div>
       </ItemDetailSection>
 
       <!-- Maintenance -->
