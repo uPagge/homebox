@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { Search, Camera, X, Plus } from "lucide-vue-next";
-import { useDebounceFn } from "@vueuse/core";
-import type { ItemSummary, LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
-import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
+import { Camera, X } from "lucide-vue-next";
+import type { ItemSummary, LocationSummary, TagSummary } from "~~/lib/api/types/data-contracts";
 import { AttachmentTypes } from "~~/lib/api/types/non-generated";
 import { toast } from "vue-sonner";
 
@@ -19,7 +17,6 @@ const emit = defineEmits<{
 const api = useUserApi();
 
 const name = ref("");
-const locationId = ref("");
 const quantity = ref(1);
 const quantityMode = ref<"single" | "multiple">("single"); // single = 1 item with qty N, multiple = N separate items
 const description = ref("");
@@ -47,171 +44,30 @@ function removePhoto() {
   if (fileInput.value) fileInput.value.value = "";
 }
 
-// Locations with search
-const locations = ref<LocationOutCount[]>([]);
-const locationSearch = ref("");
-const tree = useLocationTree();
-
-async function loadLocations() {
-  const resp = await api.locations.getAll();
-  if (resp.data) locations.value = resp.data;
-}
-
-const filteredLocations = computed(() => {
-  if (!locationSearch.value) return locations.value;
-  const q = locationSearch.value.toLowerCase();
-  return locations.value.filter(l => l.name.toLowerCase().includes(q));
-});
-
-const selectedLocationName = computed(() => {
-  const loc = locations.value.find(l => l.id === locationId.value);
-  if (!loc) return "";
-  return tree.getPathString(loc.id) ?? loc.name;
-});
-
-function onScannedLocation(target: HomeboxTarget) {
-  if (!locations.value.some(l => l.id === target.id)) {
-    toast.error("Локация не найдена в списке");
-    return;
-  }
-  locationId.value = target.id;
-  locationSearch.value = "";
-}
-
-// Parent item picker (optional, inside "Больше подробностей")
-const parentId = ref("");
-const parentSearch = ref("");
-const parentResults = ref<ItemSummary[]>([]);
+// Relations (picker-managed state)
+const selectedLocation = ref<LocationSummary | null>(null);
 const selectedParent = ref<ItemSummary | null>(null);
-const parentLoading = ref(false);
-let parentReqSeq = 0;
-
-const debouncedParentSearch = useDebounceFn(async (q: string) => {
-  if (!q.trim()) {
-    parentResults.value = [];
-    parentLoading.value = false;
-    return;
-  }
-  const seq = ++parentReqSeq;
-  const resp = await api.items.getAll({ q, pageSize: 10 });
-  if (seq !== parentReqSeq) return;
-  parentResults.value = resp.data?.items ?? [];
-  parentLoading.value = false;
-}, 200);
-
-watch(parentSearch, (val) => {
-  if (parentId.value) return;
-  if (!val.trim()) {
-    parentResults.value = [];
-    parentLoading.value = false;
-    parentReqSeq++;
-    return;
-  }
-  parentLoading.value = true;
-  debouncedParentSearch(val);
-});
-
-function selectParent(item: ItemSummary) {
-  selectedParent.value = item;
-  parentId.value = item.id;
-  parentSearch.value = "";
-  parentResults.value = [];
-}
-
-async function onScannedParent(target: HomeboxTarget) {
-  const resp = await api.items.get(target.id);
-  if (resp.error || !resp.data) {
-    toast.error("Вещь не найдена");
-    return;
-  }
-  // ItemOut is a superset of ItemSummary — all ItemSummary fields are present.
-  selectParent(resp.data as ItemSummary);
-}
-
-function clearParent() {
-  selectedParent.value = null;
-  parentId.value = "";
-}
-
-// Tags
-const allTags = ref<TagOut[]>([]);
-const tagSearch = ref("");
-const selectedTags = ref<TagOut[]>([]);
-const tagInputFocused = ref(false);
-const tagCreating = ref(false);
-
-async function loadTags() {
-  const resp = await api.tags.getAll();
-  if (resp.data) allTags.value = resp.data;
-}
-
-const tagSuggestions = computed(() => {
-  const q = tagSearch.value.trim().toLowerCase();
-  const selectedIds = new Set(selectedTags.value.map(t => t.id));
-  const pool = allTags.value.filter(t => !selectedIds.has(t.id));
-  if (!q) return pool;
-  return pool.filter(t => t.name.toLowerCase().includes(q));
-});
-
-const canCreateNewTag = computed(() => {
-  const q = tagSearch.value.trim();
-  if (!q) return false;
-  const lower = q.toLowerCase();
-  const existsInAll = allTags.value.some(t => t.name.toLowerCase() === lower);
-  const existsInSelected = selectedTags.value.some(t => t.name.toLowerCase() === lower);
-  return !existsInAll && !existsInSelected;
-});
-
-function selectTag(tag: TagOut) {
-  if (selectedTags.value.some(t => t.id === tag.id)) return;
-  selectedTags.value = [...selectedTags.value, tag];
-  tagSearch.value = "";
-}
-
-function removeTag(id: string) {
-  selectedTags.value = selectedTags.value.filter(t => t.id !== id);
-}
-
-async function createTagInline() {
-  const name = tagSearch.value.trim();
-  if (!name || tagCreating.value) return;
-  tagCreating.value = true;
-  try {
-    const resp = await api.tags.create({ name, color: "", description: "" });
-    if (resp.error || !resp.data) {
-      toast.error("Не удалось создать тег");
-      return;
-    }
-    allTags.value = [...allTags.value, resp.data];
-    selectedTags.value = [...selectedTags.value, resp.data];
-    tagSearch.value = "";
-  } finally {
-    tagCreating.value = false;
-  }
-}
-
-function onTagInputBlur() {
-  setTimeout(() => { tagInputFocused.value = false; }, 150);
-}
-
-watch(() => props.open, (isOpen) => {
-  if (isOpen) {
-    loadLocations();
-    loadTags();
-    locationSearch.value = "";
-  }
-});
+const selectedTags = ref<TagSummary[]>([]);
+const locationId = computed(() => selectedLocation.value?.id ?? "");
 
 // Remember last used location
 const lastLocationId = useLocalStorage<string>("homebox-v2/last-location", "");
 
-watch(() => props.open, (isOpen) => {
-  if (isOpen) {
-    // Priority: context location (from current page) > last used > empty
-    if (props.contextLocationId) {
-      locationId.value = props.contextLocationId;
-    } else if (lastLocationId.value && !locationId.value) {
-      locationId.value = lastLocationId.value;
+// On open: prefill location from context or last-used
+watch(() => props.open, async (isOpen) => {
+  if (!isOpen) return;
+  const wantedId = props.contextLocationId || lastLocationId.value;
+  if (wantedId && !selectedLocation.value) {
+    const resp = await api.locations.getAll();
+    const loc = resp.data?.find(l => l.id === wantedId);
+    if (loc) {
+      selectedLocation.value = {
+        id: loc.id,
+        name: loc.name,
+        description: loc.description ?? "",
+        createdAt: loc.createdAt ?? "",
+        updatedAt: loc.updatedAt ?? "",
+      };
     }
   }
 });
@@ -230,7 +86,7 @@ async function save(addNext: boolean) {
           quantity: 1,
           description: description.value,
           tagIds: selectedTags.value.map(t => t.id),
-          parentId: parentId.value || undefined,
+          parentId: selectedParent.value?.id || undefined,
         });
         if (resp.error) {
           toast.error(`Не удалось создать вещь (${i + 1}/${quantity.value})`);
@@ -253,7 +109,7 @@ async function save(addNext: boolean) {
         quantity: quantity.value,
         description: description.value,
         tagIds: selectedTags.value.map(t => t.id),
-        parentId: parentId.value || undefined,
+        parentId: selectedParent.value?.id || undefined,
       });
 
       if (resp.error) {
@@ -280,11 +136,8 @@ async function save(addNext: boolean) {
       description.value = "";
       showMore.value = false;
       removePhoto();
-      clearParent();
-      parentSearch.value = "";
-      parentResults.value = [];
+      selectedParent.value = null;
       selectedTags.value = [];
-      tagSearch.value = "";
     } else {
       resetAndClose();
     }
@@ -295,18 +148,14 @@ async function save(addNext: boolean) {
 
 function resetAndClose() {
   name.value = "";
-  locationId.value = lastLocationId.value;
+  selectedLocation.value = null;
   quantity.value = 1;
   quantityMode.value = "single";
   description.value = "";
   showMore.value = false;
-  locationSearch.value = "";
   removePhoto();
-  clearParent();
-  parentSearch.value = "";
-  parentResults.value = [];
+  selectedParent.value = null;
   selectedTags.value = [];
-  tagSearch.value = "";
   emit("update:open", false);
 }
 </script>
@@ -333,58 +182,11 @@ function resetAndClose() {
           />
         </div>
 
-        <!-- Location with search -->
+        <!-- Location -->
         <div>
           <label class="text-sm font-medium">Место</label>
-          <div class="mt-1 flex gap-2">
-            <div class="relative flex-1">
-              <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                v-model="locationSearch"
-                type="text"
-                class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                :placeholder="selectedLocationName || 'Поиск локации...'"
-              />
-            </div>
-            <ScannerPickerButton :accepts="['location']" @picked="onScannedLocation" />
-          </div>
-          <div
-            v-if="locationSearch || !locationId"
-            class="mt-1 max-h-36 overflow-y-auto border border-border rounded-lg bg-card"
-          >
-            <button
-              v-for="loc in filteredLocations"
-              :key="loc.id"
-              class="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
-              :class="loc.id === locationId ? 'bg-primary/10 text-primary font-medium' : ''"
-              @click="locationId = loc.id; locationSearch = ''"
-            >
-              <div class="text-sm">{{ loc.name }}</div>
-              <div
-                v-if="tree.getParentPathString(loc.id)"
-                class="text-xs text-muted-foreground truncate"
-              >
-                {{ tree.getParentPathString(loc.id) }}
-              </div>
-            </button>
-            <div
-              v-if="filteredLocations.length === 0"
-              class="px-3 py-2 text-sm text-muted-foreground"
-            >
-              Ничего не найдено
-            </div>
-          </div>
-          <div
-            v-else-if="locationId && selectedLocationName"
-            class="mt-1 flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-lg text-sm"
-          >
-            <span class="flex-1">{{ selectedLocationName }}</span>
-            <button
-              class="text-muted-foreground hover:text-foreground"
-              @click="locationId = ''"
-            >
-              <X class="w-3.5 h-3.5" />
-            </button>
+          <div class="mt-1">
+            <ItemLocationPickerForm v-model="selectedLocation" />
           </div>
         </div>
 
@@ -475,131 +277,16 @@ function resetAndClose() {
           <!-- Tags -->
           <div>
             <label class="text-sm font-medium">Теги</label>
-            <div class="mt-1 relative">
-              <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                v-model="tagSearch"
-                type="text"
-                class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Поиск или создание тега..."
-                @focus="tagInputFocused = true"
-                @blur="onTagInputBlur"
-              />
-            </div>
-            <div
-              v-if="tagInputFocused && (tagSuggestions.length > 0 || canCreateNewTag)"
-              class="mt-1 max-h-36 overflow-y-auto border border-border rounded-lg bg-card"
-            >
-              <button
-                v-for="tag in tagSuggestions"
-                :key="tag.id"
-                type="button"
-                class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
-                @mousedown.prevent="selectTag(tag)"
-              >
-                <div
-                  v-if="tag.color"
-                  class="w-2.5 h-2.5 rounded-full shrink-0"
-                  :style="{ backgroundColor: tag.color }"
-                />
-                <span>{{ tag.name }}</span>
-              </button>
-              <button
-                v-if="canCreateNewTag"
-                type="button"
-                :disabled="tagCreating"
-                class="w-full text-left px-3 py-2 text-sm text-primary hover:bg-accent transition-colors flex items-center gap-2 border-t border-border"
-                @mousedown.prevent="createTagInline"
-              >
-                <Plus class="w-3.5 h-3.5" />
-                <span>{{ tagCreating ? 'Создаём…' : `Создать тег «${tagSearch.trim()}»` }}</span>
-              </button>
-            </div>
-            <div
-              v-if="selectedTags.length > 0"
-              class="mt-2 flex flex-wrap gap-1.5"
-            >
-              <span
-                v-for="tag in selectedTags"
-                :key="tag.id"
-                class="inline-flex items-center gap-1.5 px-2 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs"
-              >
-                <span
-                  v-if="tag.color"
-                  class="w-2 h-2 rounded-full"
-                  :style="{ backgroundColor: tag.color }"
-                />
-                <span>{{ tag.name }}</span>
-                <button
-                  type="button"
-                  class="text-muted-foreground hover:text-foreground"
-                  @click="removeTag(tag.id)"
-                >
-                  <X class="w-3 h-3" />
-                </button>
-              </span>
+            <div class="mt-1">
+              <ItemTagsPickerForm v-model="selectedTags" />
             </div>
           </div>
 
           <!-- Parent item (optional) -->
           <div>
             <label class="text-sm font-medium">Родительская вещь</label>
-            <div v-if="!selectedParent" class="mt-1 flex gap-2">
-              <div class="relative flex-1">
-                <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input
-                  v-model="parentSearch"
-                  type="text"
-                  class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Поиск вещи..."
-                />
-              </div>
-              <ScannerPickerButton :accepts="['item']" @picked="onScannedParent" />
-            </div>
-            <div
-              v-if="!selectedParent && parentSearch"
-              class="mt-1 max-h-36 overflow-y-auto border border-border rounded-lg bg-card"
-            >
-              <div
-                v-if="parentLoading"
-                class="px-3 py-2 text-sm text-muted-foreground"
-              >
-                Поиск...
-              </div>
-              <button
-                v-for="item in parentResults"
-                :key="item.id"
-                class="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
-                @click="selectParent(item)"
-              >
-                <div class="text-sm">{{ item.name }}</div>
-                <div v-if="item.location" class="text-xs text-muted-foreground truncate">
-                  {{ tree.getPathString(item.location.id) ?? item.location.name }}
-                </div>
-              </button>
-              <div
-                v-if="!parentLoading && parentResults.length === 0"
-                class="px-3 py-2 text-sm text-muted-foreground"
-              >
-                Ничего не найдено
-              </div>
-            </div>
-            <div
-              v-else-if="selectedParent"
-              class="mt-1 flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-lg text-sm"
-            >
-              <span class="flex-1 truncate">
-                {{ selectedParent.name }}
-                <span v-if="selectedParent.location" class="text-muted-foreground">
-                  · {{ tree.getPathString(selectedParent.location.id) ?? selectedParent.location.name }}
-                </span>
-              </span>
-              <button
-                class="text-muted-foreground hover:text-foreground"
-                @click="clearParent"
-              >
-                <X class="w-3.5 h-3.5" />
-              </button>
+            <div class="mt-1">
+              <ItemParentPickerForm v-model="selectedParent" />
             </div>
           </div>
         </div>
