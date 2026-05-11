@@ -18,7 +18,7 @@ const emit = defineEmits<{
 
 const api = useUserApi();
 const router = useRouter();
-const { openDialog } = useDialog();
+const { openDialog, closeDialog } = useDialog();
 
 const query = ref("");
 const searchItems = ref<ItemSummary[]>([]);
@@ -79,17 +79,17 @@ const doSearch = useDebounceFn(async (q: string) => {
 watch(query, (val) => doSearch(val));
 
 function go(path: string) {
-  emit("update:open", false);
+  closeDialog(DialogID.QuickMenu);
   router.push(path);
 }
 
 function createAction(type: "item" | "location" | "label") {
-  emit("update:open", false);
+  closeDialog(DialogID.QuickMenu);
   emit("create", type);
 }
 
 function openScanner(): void {
-  emit("update:open", false);
+  closeDialog(DialogID.QuickMenu);
   openDialog(DialogID.Scanner);
 }
 
