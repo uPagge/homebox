@@ -484,6 +484,9 @@ watch(locationId, () => {
     <!-- Niimbot Print -->
     <NiimbotPrintSection v-if="location" type="location" :id="locationId" />
 
+    <!-- NFC write -->
+    <NfcWriteButton v-if="location" type="location" :id="locationId" />
+
     <!-- Delete dialog -->
     <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">
       <AlertDialogContent>
