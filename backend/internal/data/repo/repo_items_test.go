@@ -695,6 +695,7 @@ func TestItemsRepository_QueryByGroup_ArchivedOnly(t *testing.T) {
 		for _, it := range res.Items {
 			assert.True(t, it.Archived)
 		}
+		assert.Equal(t, len(res.Items), res.Total, "Total must match returned item count for ArchivedOnly")
 	})
 
 	t.Run("ArchivedOnly overrides IncludeArchived", func(t *testing.T) {
@@ -706,6 +707,38 @@ func TestItemsRepository_QueryByGroup_ArchivedOnly(t *testing.T) {
 		require.NotEmpty(t, res.Items)
 		for _, it := range res.Items {
 			assert.True(t, it.Archived)
+		}
+	})
+
+	t.Run("ArchivedOnly respects group scoping", func(t *testing.T) {
+		otherGroup, err := tRepos.Groups.GroupCreate(ctx, "archived-isolation-test", uuid.Nil)
+		require.NoError(t, err)
+
+		otherLoc, err := tRepos.Locations.Create(ctx, otherGroup.ID, locationFactory())
+		require.NoError(t, err)
+
+		otherItem, err := tRepos.Items.Create(ctx, otherGroup.ID, ItemCreate{
+			Name:       "cross-group-archived",
+			LocationID: otherLoc.ID,
+		})
+		require.NoError(t, err)
+
+		truthy := true
+		err = tRepos.Items.Patch(ctx, otherGroup.ID, otherItem.ID, ItemPatch{
+			ID:       otherItem.ID,
+			Archived: &truthy,
+		})
+		require.NoError(t, err)
+
+		t.Cleanup(func() {
+			_ = tRepos.Items.Delete(ctx, otherItem.ID)
+			_ = tRepos.Locations.delete(ctx, otherLoc.ID)
+		})
+
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{ArchivedOnly: true})
+		require.NoError(t, err)
+		for _, it := range res.Items {
+			assert.NotEqual(t, otherItem.ID, it.ID, "cross-group archived item leaked into tGroup results")
 		}
 	})
 }
@@ -738,12 +771,26 @@ func TestItemsRepository_Patch_Archived(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, after2.Archived)
 
+	// Verify Archived=nil truly leaves the field alone while Patch executes
+	// other fields. Pre-condition: archive the item first.
+	truthyAgain := true
 	err = tRepos.Items.Patch(ctx, tGroup.ID, itm.ID, ItemPatch{
-		ID: itm.ID,
+		ID:       itm.ID,
+		Archived: &truthyAgain,
+	})
+	require.NoError(t, err)
+
+	// Now patch with Archived=nil but Quantity set — prove Patch ran AND
+	// did not touch Archived.
+	newQty := float64(42)
+	err = tRepos.Items.Patch(ctx, tGroup.ID, itm.ID, ItemPatch{
+		ID:       itm.ID,
+		Quantity: &newQty,
 	})
 	require.NoError(t, err)
 
 	after3, err := tRepos.Items.GetOneByGroup(ctx, tGroup.ID, itm.ID)
 	require.NoError(t, err)
-	assert.False(t, after3.Archived)
+	assert.True(t, after3.Archived, "nil Archived must not flip the value")
+	assert.InDelta(t, 42.0, after3.Quantity, 0.001, "Quantity must be updated even when Archived is nil")
 }
