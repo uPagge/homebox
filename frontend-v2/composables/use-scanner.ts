@@ -166,7 +166,17 @@ export function useScanner(opts: UseScannerOptions): UseScanner {
 
   async function startDecodeLoop(deviceId: string): Promise<void> {
     if (!reader || !videoElRef) return;
-    await reader.decodeFromVideoDevice(deviceId, videoElRef, (res, err) => {
+    // 1080p with ideal — falls back to next-best if device can't deliver it.
+    // Default browser resolution is ~640×480, which leaves Niimbot QR modules
+    // at 1-2 px per module — below ZXing's reliable threshold.
+    const constraints: MediaStreamConstraints = {
+      video: {
+        deviceId: { exact: deviceId },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+    };
+    await reader.decodeFromConstraints(constraints, videoElRef, (res, err) => {
       if (res) {
         handleResult(res);
       }
