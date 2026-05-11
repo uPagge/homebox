@@ -547,20 +547,20 @@ function formatDate(date: Date | string | undefined): string {
       <!-- Niimbot Print -->
       <NiimbotPrintSection type="item" :id="itemId" />
 
-      <div class="flex gap-2 pt-2 flex-wrap">
-        <Button variant="outline" class="flex-1 gap-2" @click="showMoveScanner = true">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+        <Button variant="outline" class="w-full gap-2" @click="showMoveScanner = true">
           <ScanLine class="w-4 h-4" />
           Переместить
         </Button>
-        <Button variant="outline" class="flex-1 gap-2" @click="duplicateItem">
+        <Button variant="outline" class="w-full gap-2" @click="duplicateItem">
           <Copy class="w-4 h-4" />
           Копировать
         </Button>
-        <Button variant="outline" class="flex-1 gap-2" @click="toggleArchive">
+        <Button variant="outline" class="w-full gap-2" @click="toggleArchive">
           <component :is="item.archived ? ArchiveRestore : Archive" class="w-4 h-4" />
           {{ item.archived ? 'Вернуть' : 'Архив' }}
         </Button>
-        <Button variant="outline" class="flex-1 gap-2 text-destructive hover:text-destructive" @click="showDeleteDialog = true">
+        <Button variant="outline" class="w-full gap-2 text-destructive hover:text-destructive" @click="showDeleteDialog = true">
           <Trash2 class="w-4 h-4" />
           Удалить
         </Button>
