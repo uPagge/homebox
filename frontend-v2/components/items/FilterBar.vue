@@ -16,6 +16,13 @@ const emit = defineEmits<{
 }>();
 
 const api = useUserApi();
+const tree = useLocationTree();
+
+function parentPathString(id: string): string {
+  const path = tree.getPath(id);
+  if (!path || path.length <= 1) return "";
+  return path.slice(0, -1).map(p => p.name).join(" › ");
+}
 
 // Fetch locations and tags for filter dropdowns
 const locations = ref<LocationOutCount[]>([]);
@@ -38,7 +45,7 @@ const hasActiveFilters = computed(() =>
 
 // Lookup names for selected chips
 function locationName(id: string) {
-  return locations.value.find(l => l.id === id)?.name ?? "...";
+  return tree.getPathString(id) ?? locations.value.find(l => l.id === id)?.name ?? "...";
 }
 
 function tagName(id: string) {
@@ -73,8 +80,18 @@ const showTagPicker = ref(false);
           :checked="selectedLocations.includes(loc.id)"
           @select="(e: Event) => { e.preventDefault(); emit('toggleLocation', loc.id); }"
         >
-          <span class="truncate">{{ loc.name }}</span>
-          <span class="ml-auto text-xs text-muted-foreground">{{ loc.itemCount }}</span>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-sm truncate">{{ loc.name }}</span>
+              <span class="text-xs text-muted-foreground shrink-0">{{ loc.itemCount }}</span>
+            </div>
+            <span
+              v-if="parentPathString(loc.id)"
+              class="text-xs text-muted-foreground truncate"
+            >
+              {{ parentPathString(loc.id) }}
+            </span>
+          </div>
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
