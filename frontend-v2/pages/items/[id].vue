@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import {
-  ArrowLeft, MapPin, Tag, Copy, Trash2,
+  ArrowLeft, Copy, Trash2,
   Shield, ShieldAlert, ShieldCheck,
   Paperclip, Star, ScanLine,
-  Archive, ArchiveRestore, Boxes,
+  Archive, ArchiveRestore,
   Scissors,
 } from "lucide-vue-next";
-import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
-import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
+import type { ItemOut, ItemSummary, LocationSummary, TagSummary } from "~~/lib/api/types/data-contracts";
 import { buildItemUpdate } from "~/lib/api/build-item-update";
 import { toast } from "vue-sonner";
 
@@ -70,6 +69,63 @@ async function handleQuantityUpdate(quantity: number) {
   } catch (e) {
     if (item.value) item.value.quantity = prev;
     toast.error(`Не удалось обновить количество: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+async function updateParent(newParent: ItemSummary | null) {
+  if (!item.value) return;
+  const prev = item.value.parent ?? null;
+  item.value.parent = newParent;
+  try {
+    const resp = await api.items.update(
+      item.value.id,
+      buildItemUpdate(item.value, { parentId: newParent?.id ?? null }),
+    );
+    if (resp.error || !resp.data) throw new Error("update failed");
+    item.value = resp.data;
+    toast.success("Сохранено");
+  } catch (e) {
+    if (item.value) item.value.parent = prev;
+    await fetchItem();
+    toast.error(`Не удалось сменить родителя: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+async function updateLocation(loc: LocationSummary) {
+  if (!item.value) return;
+  const prev = item.value.location ?? null;
+  item.value.location = loc;
+  try {
+    const resp = await api.items.update(
+      item.value.id,
+      buildItemUpdate(item.value, { locationId: loc.id }),
+    );
+    if (resp.error || !resp.data) throw new Error("update failed");
+    item.value = resp.data;
+    toast.success("Сохранено");
+  } catch (e) {
+    if (item.value) item.value.location = prev;
+    await fetchItem();
+    toast.error(`Не удалось сменить локацию: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+async function updateTags(tags: TagSummary[]) {
+  if (!item.value) return;
+  const prev = item.value.tags;
+  item.value.tags = tags;
+  try {
+    const resp = await api.items.update(
+      item.value.id,
+      buildItemUpdate(item.value, { tagIds: tags.map(t => t.id) }),
+    );
+    if (resp.error || !resp.data) throw new Error("update failed");
+    item.value = resp.data;
+    toast.success("Сохранено");
+  } catch (e) {
+    if (item.value) item.value.tags = prev;
+    await fetchItem();
+    toast.error(`Не удалось сменить теги: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -245,21 +301,11 @@ async function saveEdit() {
     const updateData = buildItemUpdate(item.value, {
       name: editForm.value.name ?? item.value.name,
       description: editForm.value.description ?? item.value.description,
-      locationId: editForm.value.location?.id ?? item.value.location?.id ?? "",
       quantity: editForm.value.quantity ?? item.value.quantity,
-      tagIds: (editForm.value.tags ?? item.value.tags).map(t => t.id),
       manufacturer: editForm.value.manufacturer ?? item.value.manufacturer,
       modelNumber: editForm.value.modelNumber ?? item.value.modelNumber,
       serialNumber: editForm.value.serialNumber ?? item.value.serialNumber,
       notes: editForm.value.notes ?? item.value.notes,
-      purchaseFrom: editForm.value.purchaseFrom ?? item.value.purchaseFrom,
-      purchasePrice: editForm.value.purchasePrice ?? item.value.purchasePrice,
-      purchaseTime: editForm.value.purchaseTime ?? item.value.purchaseTime,
-      warrantyExpires: editForm.value.warrantyExpires ?? item.value.warrantyExpires,
-      warrantyDetails: editForm.value.warrantyDetails ?? item.value.warrantyDetails,
-      lifetimeWarranty: editForm.value.lifetimeWarranty ?? item.value.lifetimeWarranty,
-      insured: editForm.value.insured ?? item.value.insured,
-      fields: editForm.value.fields ?? item.value.fields,
     });
 
     const resp = await api.items.update(item.value.id, updateData);
@@ -273,28 +319,6 @@ async function saveEdit() {
     editingSection.value = null;
     editForm.value = {};
   }
-}
-
-// Location options for edit
-const allLocations = ref<LocationOutCount[]>([]);
-async function loadLocationsForEdit() {
-  const resp = await api.locations.getAll();
-  if (resp.data) allLocations.value = resp.data;
-}
-
-function onScannedLocation(target: HomeboxTarget) {
-  const found = allLocations.value.find(l => l.id === target.id);
-  if (!found) {
-    toast.error("Локация не найдена в списке");
-    return;
-  }
-  editForm.value.location = {
-    id: found.id,
-    name: found.name,
-    description: "",
-    createdAt: "",
-    updatedAt: "",
-  };
 }
 
 // Format date helper
@@ -350,53 +374,22 @@ function formatDate(date: Date | string | undefined): string {
         <p v-if="item.description" class="text-muted-foreground text-sm mt-1">{{ item.description }}</p>
       </div>
 
-      <div class="flex flex-wrap gap-2">
-        <NuxtLink
-          v-if="item.parent"
-          :to="`/items/${item.parent.id}`"
-          :title="`В: ${item.parent.name}`"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs hover:bg-accent hover:text-accent-foreground transition-colors max-w-[60vw]"
-        >
-          <Boxes class="w-3.5 h-3.5 shrink-0" />
-          <span class="truncate">В: {{ item.parent.name }}</span>
-        </NuxtLink>
-        <NuxtLink
-          v-if="item.location"
-          :to="`/locations/${item.location.id}`"
-          :title="tree.getPathString(item.location.id) ?? item.location.name"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs hover:bg-accent hover:text-accent-foreground transition-colors max-w-[60vw] min-w-0"
-        >
-          <MapPin class="w-3.5 h-3.5 shrink-0" />
-          <bdi class="truncate text-start" style="direction: rtl">{{ tree.getPathString(item.location.id) ?? item.location.name }}</bdi>
-        </NuxtLink>
-        <div
-          v-for="tag in item.tags"
-          :key="tag.id"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs"
-        >
-          <Tag class="w-3.5 h-3.5" />
-          {{ tag.name }}
-        </div>
-        <div class="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs">
-          <span>Кол-во:</span>
-          <QuantityStepper :quantity="item.quantity" @update="handleQuantityUpdate" />
-          <button
-            v-if="item.quantity > 1"
-            class="ml-0.5 p-1 rounded hover:bg-accent text-muted-foreground transition-colors"
-            title="Разделить"
-            @click="showSplit = true"
-          >
-            <Scissors class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <ItemRelationsSection
+        :item-id="item.id"
+        :parent="item.parent ?? null"
+        :location="item.location ?? null"
+        :tags="item.tags"
+        @save-parent="updateParent"
+        @save-location="updateLocation"
+        @save-tags="updateTags"
+      />
 
       <ItemDetailSection
         title="Детали"
         collapsible
         editable
         :editing="editingSection === 'details'"
-        @edit="() => { startEdit('details'); loadLocationsForEdit(); }"
+        @edit="startEdit('details')"
         @save="saveEdit"
         @cancel="cancelEdit"
       >
@@ -412,21 +405,6 @@ function formatDate(date: Date | string | undefined): string {
             <div>
               <label class="text-xs text-muted-foreground">Описание</label>
               <Textarea v-model="editForm.description" rows="2" />
-            </div>
-            <div>
-              <label class="text-xs text-muted-foreground">Место</label>
-              <div class="flex gap-2">
-                <select
-                  :value="editForm.location?.id"
-                  class="flex-1 px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  @change="editForm.location = { id: ($event.target as HTMLSelectElement).value, name: '', description: '', createdAt: '', updatedAt: '' }"
-                >
-                  <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
-                    {{ tree.getPathString(loc.id) ?? loc.name }}
-                  </option>
-                </select>
-                <ScannerPickerButton :accepts="['location']" @picked="onScannedLocation" />
-              </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
@@ -459,6 +437,20 @@ function formatDate(date: Date | string | undefined): string {
         </template>
         <template v-else>
           <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div>
+              <dt class="text-muted-foreground text-xs">Количество</dt>
+              <dd class="flex items-center gap-1.5">
+                <QuantityStepper :quantity="item.quantity" @update="handleQuantityUpdate" />
+                <button
+                  v-if="item.quantity > 1"
+                  class="p-1 rounded hover:bg-accent text-muted-foreground transition-colors"
+                  title="Разделить"
+                  @click="showSplit = true"
+                >
+                  <Scissors class="w-3.5 h-3.5" />
+                </button>
+              </dd>
+            </div>
             <div v-if="item.manufacturer">
               <dt class="text-muted-foreground text-xs">Производитель</dt>
               <dd>{{ item.manufacturer }}</dd>
