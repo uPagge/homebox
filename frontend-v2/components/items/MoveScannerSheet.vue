@@ -167,6 +167,14 @@ const filteredLocations = computed(() => {
   return allLocations.value.filter(l => l.name.toLowerCase().includes(q));
 });
 
+const tree = useLocationTree();
+
+function parentPathString(id: string): string {
+  const path = tree.getPath(id);
+  if (!path || path.length <= 1) return "";
+  return path.slice(0, -1).map(p => p.name).join(" › ");
+}
+
 function pickLocation(loc: LocationOutCount) {
   session.setDestinationFromLocation(loc);
   showPicker.value = false;
@@ -372,11 +380,19 @@ function discardAndSwitch() {
           <button
             v-for="loc in filteredLocations"
             :key="loc.id"
-            class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+            class="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
             @click="pickLocation(loc)"
           >
-            {{ loc.name }}
-            <span class="text-xs text-muted-foreground ml-1">({{ loc.itemCount }})</span>
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-sm">{{ loc.name }}</span>
+              <span class="text-xs text-muted-foreground shrink-0">({{ loc.itemCount }})</span>
+            </div>
+            <div
+              v-if="parentPathString(loc.id)"
+              class="text-xs text-muted-foreground truncate"
+            >
+              {{ parentPathString(loc.id) }}
+            </div>
           </button>
           <div v-if="filteredLocations.length === 0" class="px-3 py-2 text-sm text-muted-foreground">
             Ничего не найдено
