@@ -19,6 +19,13 @@ const emit = defineEmits<{
 const api = useUserApi();
 const router = useRouter();
 const { openDialog, closeDialog } = useDialog();
+const tree = useLocationTree();
+
+function parentPathString(id: string): string {
+  const path = tree.getPath(id);
+  if (!path || path.length <= 1) return "";
+  return path.slice(0, -1).map(p => p.name).join(" › ");
+}
 
 const query = ref("");
 const searchItems = ref<ItemSummary[]>([]);
@@ -127,9 +134,12 @@ useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", meta: true, ctrl: false });
         >
           <Package class="mr-2 h-4 w-4 text-muted-foreground" />
           <span>{{ item.name }}</span>
-          <span v-if="item.location" class="ml-auto text-xs text-muted-foreground truncate max-w-[120px]">
-            {{ item.location.name }}
-          </span>
+          <bdi
+            v-if="item.location"
+            class="ml-auto text-xs text-muted-foreground truncate max-w-[160px] text-start"
+            style="direction: rtl"
+            :title="tree.getPathString(item.location.id) ?? item.location.name"
+          >{{ tree.getPathString(item.location.id) ?? item.location.name }}</bdi>
         </CommandItem>
       </CommandGroup>
 
@@ -142,7 +152,15 @@ useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", meta: true, ctrl: false });
           @select="go(`/locations/${loc.id}`)"
         >
           <MapPin class="mr-2 h-4 w-4 text-muted-foreground" />
-          <span>{{ loc.name }}</span>
+          <div class="flex flex-col min-w-0 flex-1">
+            <span class="truncate">{{ loc.name }}</span>
+            <span
+              v-if="parentPathString(loc.id)"
+              class="text-xs text-muted-foreground truncate"
+            >
+              {{ parentPathString(loc.id) }}
+            </span>
+          </div>
           <span class="ml-auto text-xs text-muted-foreground">{{ loc.itemCount }}</span>
         </CommandItem>
       </CommandGroup>
