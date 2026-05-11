@@ -357,30 +357,30 @@ function labelForType(type: string): string {
           Файлов нет
         </p>
       </div>
-
-      <AlertDialog
-        :open="deleteConfirmFor !== null"
-        @update:open="(v: boolean) => { if (!v) deleteConfirmFor = null; }"
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить файл?</AlertDialogTitle>
-            <AlertDialogDescription>
-              «{{ deleteConfirmFor?.title }}» будет удалён без возможности восстановления.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel :disabled="deletingId !== null">Отмена</AlertDialogCancel>
-            <AlertDialogAction
-              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              :disabled="deletingId !== null"
-              @click="confirmDelete"
-            >
-              {{ deletingId !== null ? "Удаляем..." : "Удалить" }}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DrawerContent>
   </Drawer>
+
+  <AlertDialog
+    :open="deleteConfirmFor !== null"
+    @update:open="(v: boolean) => { if (!v) deleteConfirmFor = null; }"
+  >
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Удалить файл?</AlertDialogTitle>
+        <AlertDialogDescription>
+          «{{ deleteConfirmFor?.title }}» будет удалён без возможности восстановления.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel :disabled="deletingId !== null">Отмена</AlertDialogCancel>
+        <AlertDialogAction
+          class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          :disabled="deletingId !== null"
+          @click="confirmDelete"
+        >
+          {{ deletingId !== null ? "Удаляем..." : "Удалить" }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
