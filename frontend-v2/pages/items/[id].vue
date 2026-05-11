@@ -263,6 +263,21 @@ async function loadLocationsForEdit() {
   if (resp.data) allLocations.value = resp.data;
 }
 
+function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+  const found = allLocations.value.find(l => l.id === target.id);
+  if (!found) {
+    toast.error("Локация не найдена в списке");
+    return;
+  }
+  editForm.value.location = {
+    id: found.id,
+    name: found.name,
+    description: "",
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
 // Format date helper
 function formatDate(date: Date | string | undefined): string {
   if (!date) return "\u2014";
@@ -372,15 +387,18 @@ function formatDate(date: Date | string | undefined): string {
             </div>
             <div>
               <label class="text-xs text-muted-foreground">Место</label>
-              <select
-                :value="editForm.location?.id"
-                class="w-full px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                @change="editForm.location = { id: ($event.target as HTMLSelectElement).value, name: '', description: '', createdAt: '', updatedAt: '' }"
-              >
-                <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
-                  {{ tree.getPathString(loc.id) ?? loc.name }}
-                </option>
-              </select>
+              <div class="flex gap-2">
+                <select
+                  :value="editForm.location?.id"
+                  class="flex-1 px-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  @change="editForm.location = { id: ($event.target as HTMLSelectElement).value, name: '', description: '', createdAt: '', updatedAt: '' }"
+                >
+                  <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
+                    {{ tree.getPathString(loc.id) ?? loc.name }}
+                  </option>
+                </select>
+                <ScannerPickerButton :accepts="['location']" @picked="onScannedLocation" />
+              </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
