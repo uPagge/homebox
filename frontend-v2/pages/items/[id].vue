@@ -290,7 +290,7 @@ function formatDate(date: Date | string | undefined): string {
 <template>
   <div class="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
     <NuxtLink
-      v-if="backTarget.to"
+      v-if="backTarget.kind === 'navigate'"
       :to="backTarget.to"
       class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-w-0 max-w-full"
     >
