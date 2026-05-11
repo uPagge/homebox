@@ -689,6 +689,7 @@ export interface ItemPatch {
   locationId?: string | null;
   quantity?: number | null;
   tagIds?: string[] | null;
+  archived?: boolean | null;
 }
 
 export interface ItemPath {
