@@ -49,6 +49,13 @@ function removePhoto() {
 // Locations with search
 const locations = ref<LocationOutCount[]>([]);
 const locationSearch = ref("");
+const tree = useLocationTree();
+
+function parentPathString(id: string): string {
+  const path = tree.getPath(id);
+  if (!path || path.length <= 1) return "";
+  return path.slice(0, -1).map(p => p.name).join(" › ");
+}
 
 async function loadLocations() {
   const resp = await api.locations.getAll();
@@ -63,7 +70,8 @@ const filteredLocations = computed(() => {
 
 const selectedLocationName = computed(() => {
   const loc = locations.value.find(l => l.id === locationId.value);
-  return loc?.name ?? "";
+  if (!loc) return "";
+  return tree.getPathString(loc.id) ?? loc.name;
 });
 
 // Parent item picker (optional, inside "Больше подробностей")
@@ -331,11 +339,17 @@ function resetAndClose() {
             <button
               v-for="loc in filteredLocations"
               :key="loc.id"
-              class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+              class="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
               :class="loc.id === locationId ? 'bg-primary/10 text-primary font-medium' : ''"
               @click="locationId = loc.id; locationSearch = ''"
             >
-              {{ loc.name }}
+              <div class="text-sm">{{ loc.name }}</div>
+              <div
+                v-if="parentPathString(loc.id)"
+                class="text-xs text-muted-foreground truncate"
+              >
+                {{ parentPathString(loc.id) }}
+              </div>
             </button>
             <div
               v-if="filteredLocations.length === 0"
@@ -540,8 +554,8 @@ function resetAndClose() {
                 @click="selectParent(item)"
               >
                 <div class="text-sm">{{ item.name }}</div>
-                <div v-if="item.location?.name" class="text-xs text-muted-foreground">
-                  {{ item.location.name }}
+                <div v-if="item.location" class="text-xs text-muted-foreground truncate">
+                  {{ tree.getPathString(item.location.id) ?? item.location.name }}
                 </div>
               </button>
               <div
@@ -557,8 +571,8 @@ function resetAndClose() {
             >
               <span class="flex-1 truncate">
                 {{ selectedParent.name }}
-                <span v-if="selectedParent.location?.name" class="text-muted-foreground">
-                  · {{ selectedParent.location.name }}
+                <span v-if="selectedParent.location" class="text-muted-foreground">
+                  · {{ tree.getPathString(selectedParent.location.id) ?? selectedParent.location.name }}
                 </span>
               </span>
               <button
