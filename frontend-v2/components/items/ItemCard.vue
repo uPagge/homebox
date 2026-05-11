@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPin, Check } from "lucide-vue-next";
+import { MapPin, Check, Archive } from "lucide-vue-next";
 import type { ItemSummary } from "~~/lib/api/types/data-contracts";
 
 const props = defineProps<{
@@ -47,6 +47,7 @@ function handleClick(e: Event) {
     :class="[
       selected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/30 hover:shadow-sm',
       selectionMode ? 'cursor-pointer' : '',
+      item.archived ? 'opacity-60' : '',
     ]"
     @click="handleClick"
   >
@@ -70,6 +71,15 @@ function handleClick(e: Event) {
           : 'bg-card/80 border-muted-foreground/40'"
       >
         <Check v-if="selected" class="w-3 h-3" />
+      </div>
+
+      <!-- Archived badge -->
+      <div
+        v-if="item.archived"
+        class="absolute top-2 right-2 w-6 h-6 rounded-full bg-card/90 border border-border flex items-center justify-center"
+        title="В архиве"
+      >
+        <Archive class="w-3 h-3 text-muted-foreground" />
       </div>
     </div>
 
