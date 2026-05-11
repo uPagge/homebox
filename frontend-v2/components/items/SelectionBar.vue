@@ -22,7 +22,7 @@ const emit = defineEmits<{
     <div class="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
       <div class="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-2xl shadow-lg">
         <span class="text-sm font-medium whitespace-nowrap tabular-nums">
-          Выбрано: {{ count }}
+          {{ count }}
         </span>
 
         <div class="w-px h-5 bg-border" />

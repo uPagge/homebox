@@ -27,6 +27,7 @@ const {
   showBatchDuplicate,
   showBatchArchive,
   batchArchiveLabel,
+  anyBatchSheetOpen,
 } = useItemSelection(items);
 
 watch([() => filters.page, () => filters.q, () => filters.locations, () => filters.tags], clearSelection);
@@ -201,7 +202,7 @@ onMounted(() => fetchItems());
 
     <!-- Selection Bar -->
     <SelectionBar
-      v-if="selectionMode && selectedIds.size > 0"
+      v-if="selectionMode && selectedIds.size > 0 && !anyBatchSheetOpen"
       :count="selectedIds.size"
       :archive-label="batchArchiveLabel"
       @change-location="showBatchLocation = true"

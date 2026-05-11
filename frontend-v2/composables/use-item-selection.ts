@@ -44,6 +44,15 @@ export function useItemSelection(items: Ref<ItemSummary[]>) {
     selectedItems.value.some(i => !i.archived) ? "Архивировать" : "Вернуть из архива"
   );
 
+  const anyBatchSheetOpen = computed(() =>
+    showBatchLocation.value ||
+    showBatchTagAdd.value ||
+    showBatchTagRemove.value ||
+    showBatchDelete.value ||
+    showBatchDuplicate.value ||
+    showBatchArchive.value
+  );
+
   onMounted(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && selectionMode.value) {
@@ -69,5 +78,6 @@ export function useItemSelection(items: Ref<ItemSummary[]>) {
     showBatchDuplicate,
     showBatchArchive,
     batchArchiveLabel,
+    anyBatchSheetOpen,
   };
 }

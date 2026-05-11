@@ -139,6 +139,7 @@ const {
   showBatchDuplicate,
   showBatchArchive,
   batchArchiveLabel,
+  anyBatchSheetOpen,
 } = useItemSelection(items);
 
 watch([locationId, recursive, page], clearSelection);
@@ -526,7 +527,7 @@ watch(locationId, () => {
     />
 
     <SelectionBar
-      v-if="selectionMode && selectedIds.size > 0"
+      v-if="selectionMode && selectedIds.size > 0 && !anyBatchSheetOpen"
       :count="selectedIds.size"
       :archive-label="batchArchiveLabel"
       @change-location="showBatchLocation = true"

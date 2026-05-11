@@ -84,6 +84,7 @@ const {
   showBatchDuplicate,
   showBatchArchive,
   batchArchiveLabel,
+  anyBatchSheetOpen,
 } = useItemSelection(items);
 
 watch([labelId, page], clearSelection);
@@ -330,7 +331,7 @@ onMounted(() => {
     </template>
 
     <SelectionBar
-      v-if="selectionMode && selectedIds.size > 0"
+      v-if="selectionMode && selectedIds.size > 0 && !anyBatchSheetOpen"
       :count="selectedIds.size"
       :archive-label="batchArchiveLabel"
       @change-location="showBatchLocation = true"
