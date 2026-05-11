@@ -112,7 +112,7 @@ useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", meta: true, ctrl: false });
     @update:open="emit('update:open', $event)"
   >
     <CommandInput v-model="query" placeholder="Поиск..." />
-    <CommandList>
+    <CommandList class="max-h-[70vh]">
       <CommandEmpty v-if="query && !hasResults && !searching">
         Ничего не найдено
       </CommandEmpty>
