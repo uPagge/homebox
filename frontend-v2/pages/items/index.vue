@@ -4,7 +4,7 @@ import { useDebounceFn } from "@vueuse/core";
 
 definePageMeta({ layout: "default" });
 
-const { items, total, totalPrice, loading, filters, fetchItems, setSearch, setPage, toggleLocation, toggleTag, clearFilters } = useItems();
+const { items, total, totalPrice, loading, filters, fetchItems, setSearch, setPage, toggleLocation, toggleTag, clearFilters, setIncludeArchived } = useItems();
 
 const preferences = useViewPreferences();
 const viewMode = computed({
@@ -155,8 +155,10 @@ onMounted(() => fetchItems());
     <FilterBar
       :selected-locations="filters.locations"
       :selected-tags="filters.tags"
+      :include-archived="filters.includeArchived"
       @toggle-location="toggleLocation"
       @toggle-tag="toggleTag"
+      @toggle-include-archived="setIncludeArchived"
       @clear="clearFilters"
     />
 

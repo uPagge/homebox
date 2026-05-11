@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { X, MapPin, Tag } from "lucide-vue-next";
+import { X, MapPin, Tag, Archive } from "lucide-vue-next";
 import type { LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
 
 const props = defineProps<{
   selectedLocations: string[];
   selectedTags: string[];
+  includeArchived?: boolean;
 }>();
 
 const emit = defineEmits<{
   toggleLocation: [id: string];
   toggleTag: [id: string];
+  toggleIncludeArchived: [value: boolean];
   clear: [];
 }>();
 
@@ -110,6 +112,18 @@ const showTagPicker = ref(false);
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <!-- Archived toggle chip -->
+    <button
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors shrink-0"
+      :class="includeArchived
+        ? 'bg-primary/10 border-primary/30 text-primary'
+        : 'bg-card border-border text-muted-foreground hover:border-primary/30'"
+      @click="emit('toggleIncludeArchived', !includeArchived)"
+    >
+      <Archive class="w-3.5 h-3.5" />
+      <span>Архивные</span>
+    </button>
 
     <!-- Clear all -->
     <button
