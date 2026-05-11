@@ -21,12 +21,6 @@ const router = useRouter();
 const { openDialog, closeDialog } = useDialog();
 const tree = useLocationTree();
 
-function parentPathString(id: string): string {
-  const path = tree.getPath(id);
-  if (!path || path.length <= 1) return "";
-  return path.slice(0, -1).map(p => p.name).join(" › ");
-}
-
 const query = ref("");
 const searchItems = ref<ItemSummary[]>([]);
 const searchLocations = ref<LocationOutCount[]>([]);
@@ -155,10 +149,10 @@ useDialogHotkey(DialogID.QuickMenu, { code: "KeyK", meta: true, ctrl: false });
           <div class="flex flex-col min-w-0 flex-1">
             <span class="truncate">{{ loc.name }}</span>
             <span
-              v-if="parentPathString(loc.id)"
+              v-if="tree.getParentPathString(loc.id)"
               class="text-xs text-muted-foreground truncate"
             >
-              {{ parentPathString(loc.id) }}
+              {{ tree.getParentPathString(loc.id) }}
             </span>
           </div>
           <span class="ml-auto text-xs text-muted-foreground">{{ loc.itemCount }}</span>

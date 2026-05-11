@@ -51,12 +51,6 @@ const locations = ref<LocationOutCount[]>([]);
 const locationSearch = ref("");
 const tree = useLocationTree();
 
-function parentPathString(id: string): string {
-  const path = tree.getPath(id);
-  if (!path || path.length <= 1) return "";
-  return path.slice(0, -1).map(p => p.name).join(" › ");
-}
-
 async function loadLocations() {
   const resp = await api.locations.getAll();
   if (resp.data) locations.value = resp.data;
@@ -345,10 +339,10 @@ function resetAndClose() {
             >
               <div class="text-sm">{{ loc.name }}</div>
               <div
-                v-if="parentPathString(loc.id)"
+                v-if="tree.getParentPathString(loc.id)"
                 class="text-xs text-muted-foreground truncate"
               >
-                {{ parentPathString(loc.id) }}
+                {{ tree.getParentPathString(loc.id) }}
               </div>
             </button>
             <div

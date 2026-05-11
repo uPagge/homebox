@@ -109,6 +109,12 @@ export function useLocationTree() {
     return node.pathString.split(PATH_SEPARATOR).join(sep);
   }
 
+  function getParentPathString(id: string | undefined | null, sep = PATH_SEPARATOR): string {
+    const node = getNode(id);
+    if (!node || node.ancestors.length === 0) return "";
+    return node.ancestors.map(a => a.name).join(sep);
+  }
+
   function hasChildren(id: string | undefined | null): boolean {
     return getNode(id)?.hasChildren ?? false;
   }
@@ -172,6 +178,7 @@ export function useLocationTree() {
     loading,
     getPath,
     getPathString,
+    getParentPathString,
     hasChildren,
     getDescendantIds,
     getSiblings,

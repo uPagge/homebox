@@ -18,12 +18,6 @@ const emit = defineEmits<{
 const api = useUserApi();
 const tree = useLocationTree();
 
-function parentPathString(id: string): string {
-  const path = tree.getPath(id);
-  if (!path || path.length <= 1) return "";
-  return path.slice(0, -1).map(p => p.name).join(" › ");
-}
-
 // Fetch locations and tags for filter dropdowns
 const locations = ref<LocationOutCount[]>([]);
 const tags = ref<TagOut[]>([]);
@@ -86,10 +80,10 @@ const showTagPicker = ref(false);
               <span class="text-xs text-muted-foreground shrink-0">{{ loc.itemCount }}</span>
             </div>
             <span
-              v-if="parentPathString(loc.id)"
+              v-if="tree.getParentPathString(loc.id)"
               class="text-xs text-muted-foreground truncate"
             >
-              {{ parentPathString(loc.id) }}
+              {{ tree.getParentPathString(loc.id) }}
             </span>
           </div>
         </DropdownMenuCheckboxItem>
