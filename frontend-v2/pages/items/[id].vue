@@ -615,6 +615,9 @@ function formatDate(date: Date | string | undefined): string {
       <!-- Niimbot Print -->
       <NiimbotPrintSection type="item" :id="itemId" />
 
+      <!-- NFC write -->
+      <NfcWriteButton type="item" :id="itemId" />
+
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
         <Button variant="outline" class="w-full gap-2" @click="showMoveScanner = true">
           <ScanLine class="w-4 h-4" />
