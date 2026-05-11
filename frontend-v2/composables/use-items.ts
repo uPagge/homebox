@@ -11,6 +11,7 @@ export interface ItemFilters {
   pageSize: number;
   orderBy: string;
   includeArchived: boolean;
+  archivedOnly: boolean;
 }
 
 const defaultFilters: ItemFilters = {
@@ -21,6 +22,7 @@ const defaultFilters: ItemFilters = {
   pageSize: 25,
   orderBy: "name",
   includeArchived: false,
+  archivedOnly: false,
 };
 
 export function useItems() {
@@ -69,7 +71,11 @@ export function useItems() {
       if (filters.q) q.q = filters.q;
       if (filters.locations.length) q.locations = filters.locations;
       if (filters.tags.length) q.tags = filters.tags;
-      if (filters.includeArchived) q.includeArchived = true;
+      if (filters.archivedOnly) {
+        q.archivedOnly = true;
+      } else if (filters.includeArchived) {
+        q.includeArchived = true;
+      }
 
       const resp = await api.items.getAll(q);
       if (resp.data) {
@@ -119,6 +125,19 @@ export function useItems() {
     fetchItems();
   }
 
+  function setIncludeArchived(value: boolean) {
+    filters.includeArchived = value;
+    filters.page = 1;
+    syncToUrl();
+    fetchItems();
+  }
+
+  function setArchivedOnly(value: boolean) {
+    filters.archivedOnly = value;
+    filters.page = 1;
+    fetchItems();
+  }
+
   // Initialize
   syncFromUrl();
 
@@ -134,5 +153,7 @@ export function useItems() {
     toggleLocation,
     toggleTag,
     clearFilters,
+    setIncludeArchived,
+    setArchivedOnly,
   };
 }
