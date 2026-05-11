@@ -26,7 +26,7 @@ The chip-row layout itself is also cramped and treats three semantically differe
 - A "Move children too" checkbox in the location drawer (uses existing `syncChildItemsLocations` flag as-is).
 - Creating a new location or new parent item from inside the picker drawer (existing pages handle creation).
 - Cycle detection on the frontend for parent reassignment (relies on backend rejection).
-- Introducing a test runtime (vitest/playwright). Verification stays manual.
+- Playwright/component-level e2e for the new pickers. (Unit tests for `buildItemUpdate` are in scope; vitest is configured in this project.)
 - Drag-and-drop or reorder for tags.
 
 ## Architecture
@@ -234,7 +234,7 @@ Manual checklist run before each commit in the implementation plan:
 - [ ] `QuickAddSheet` after migration: create an item with parent + location + tags works end-to-end.
 - [ ] `QuickAddSheet`: Form components render inline without any nested `<Drawer>` (visual sanity check).
 
-Type safety covered by `pnpm build` (TypeScript strict mode). `defineProps` / `defineEmits` give contract-level safety without a test runtime.
+Type safety covered by `pnpm build` (TypeScript strict mode). `defineProps` / `defineEmits` give contract-level safety. Pure logic (`buildItemUpdate`) is unit-tested via vitest (`lib/api/build-item-update.test.ts`); components stay behind the manual checklist above.
 
 ## Implementation plan (commits)
 

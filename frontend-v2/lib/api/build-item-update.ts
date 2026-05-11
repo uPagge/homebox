@@ -1,7 +1,10 @@
 import type { ItemOut, ItemUpdate } from "~~/lib/api/types/data-contracts";
 
 export function buildItemUpdate(item: ItemOut, overrides?: Partial<ItemUpdate>): ItemUpdate {
-  return {
+  if (overrides?.parentId !== undefined && overrides.parentId === item.id) {
+    throw new Error("buildItemUpdate: cannot make item its own parent");
+  }
+  const base: ItemUpdate = {
     id: item.id,
     name: item.name,
     description: item.description,
@@ -28,6 +31,11 @@ export function buildItemUpdate(item: ItemOut, overrides?: Partial<ItemUpdate>):
     soldPrice: item.soldPrice,
     soldNotes: item.soldNotes,
     syncChildItemsLocations: item.syncChildItemsLocations,
-    ...overrides,
   };
+  if (!overrides) return base;
+  for (const [key, value] of Object.entries(overrides) as [keyof ItemUpdate, ItemUpdate[keyof ItemUpdate]][]) {
+    if (value === undefined) continue;
+    (base[key] as unknown) = value;
+  }
+  return base;
 }

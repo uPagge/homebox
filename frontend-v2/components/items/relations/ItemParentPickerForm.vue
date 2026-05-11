@@ -31,9 +31,14 @@ const debouncedSearch = useDebounceFn(async (q: string) => {
   const seq = ++reqSeq;
   const resp = await api.items.getAll({ q, pageSize: 10 });
   if (seq !== reqSeq) return;
+  loading.value = false;
+  if (resp.error) {
+    results.value = [];
+    toast.error("Не удалось выполнить поиск");
+    return;
+  }
   const items = resp.data?.items ?? [];
   results.value = props.excludeId ? items.filter(it => it.id !== props.excludeId) : items;
-  loading.value = false;
 }, 200);
 
 watch(search, (val) => {

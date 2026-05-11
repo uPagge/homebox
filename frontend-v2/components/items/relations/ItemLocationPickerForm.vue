@@ -20,6 +20,10 @@ const search = ref("");
 
 async function load() {
   const resp = await api.locations.getAll();
+  if (resp.error) {
+    toast.error("Не удалось загрузить локации");
+    return;
+  }
   if (resp.data) locations.value = resp.data;
 }
 

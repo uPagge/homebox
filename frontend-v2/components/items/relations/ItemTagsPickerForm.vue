@@ -20,6 +20,10 @@ const creating = ref(false);
 
 async function load() {
   const resp = await api.tags.getAll();
+  if (resp.error) {
+    toast.error("Не удалось загрузить теги");
+    return;
+  }
   if (resp.data) allTags.value = resp.data;
 }
 
@@ -42,21 +46,9 @@ const canCreateNew = computed(() => {
   return !inAll && !inSelected;
 });
 
-function toSummary(t: TagOut): TagSummary {
-  return {
-    id: t.id,
-    name: t.name,
-    color: t.color,
-    description: t.description,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-  };
-}
-
-function add(tag: TagOut | TagSummary) {
+function add(tag: TagSummary) {
   if (props.modelValue.some(t => t.id === tag.id)) return;
-  const summary: TagSummary = toSummary(tag as TagOut);
-  emit("update:modelValue", [...props.modelValue, summary]);
+  emit("update:modelValue", [...props.modelValue, tag]);
   search.value = "";
 }
 
