@@ -47,6 +47,7 @@ type (
 		ParentItemIDs    []uuid.UUID  `json:"parentIds"`
 		SortBy           string       `json:"sortBy"`
 		IncludeArchived  bool         `json:"includeArchived"`
+		ArchivedOnly     bool         `json:"archivedOnly"`
 		Fields           []FieldQuery `json:"fields"`
 		OrderBy          string       `json:"orderBy"`
 	}
@@ -357,14 +358,17 @@ func (e *ItemsRepository) QueryByGroup(ctx context.Context, gid uuid.UUID, q Ite
 		item.HasGroupWith(group.ID(gid)),
 	)
 
-	if q.IncludeArchived {
+	switch {
+	case q.ArchivedOnly:
+		qb = qb.Where(item.Archived(true))
+	case q.IncludeArchived:
 		qb = qb.Where(
 			item.Or(
 				item.Archived(true),
 				item.Archived(false),
 			),
 		)
-	} else {
+	default:
 		qb = qb.Where(item.Archived(false))
 	}
 

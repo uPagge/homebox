@@ -651,3 +651,61 @@ func TestItemsRepository_WipeInventory_OnlyItems(t *testing.T) {
 	_ = tRepos.Tags.DeleteByGroup(context.Background(), tGroup.ID, tag.ID)
 	_ = tRepos.Locations.delete(context.Background(), loc.ID)
 }
+
+func TestItemsRepository_QueryByGroup_ArchivedOnly(t *testing.T) {
+	ctx := context.Background()
+	items := useItems(t, 3)
+
+	_, err := tRepos.Items.UpdateByGroup(ctx, tGroup.ID, ItemUpdate{
+		ID:         items[0].ID,
+		Name:       items[0].Name,
+		Quantity:   1,
+		LocationID: items[0].Location.ID,
+		Archived:   true,
+	})
+	require.NoError(t, err)
+
+	t.Run("default returns only active", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{})
+		require.NoError(t, err)
+		for _, it := range res.Items {
+			assert.False(t, it.Archived)
+		}
+	})
+
+	t.Run("IncludeArchived returns both", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{IncludeArchived: true})
+		require.NoError(t, err)
+		var archived, active int
+		for _, it := range res.Items {
+			if it.Archived {
+				archived++
+			} else {
+				active++
+			}
+		}
+		assert.GreaterOrEqual(t, archived, 1)
+		assert.GreaterOrEqual(t, active, 1)
+	})
+
+	t.Run("ArchivedOnly returns only archived", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{ArchivedOnly: true})
+		require.NoError(t, err)
+		require.NotEmpty(t, res.Items)
+		for _, it := range res.Items {
+			assert.True(t, it.Archived)
+		}
+	})
+
+	t.Run("ArchivedOnly overrides IncludeArchived", func(t *testing.T) {
+		res, err := tRepos.Items.QueryByGroup(ctx, tGroup.ID, ItemQuery{
+			ArchivedOnly:    true,
+			IncludeArchived: true,
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, res.Items)
+		for _, it := range res.Items {
+			assert.True(t, it.Archived)
+		}
+	})
+}
