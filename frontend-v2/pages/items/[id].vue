@@ -8,6 +8,7 @@ import {
 } from "lucide-vue-next";
 import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
+import { buildItemUpdate } from "~/lib/api/build-item-update";
 import { toast } from "vue-sonner";
 
 definePageMeta({ layout: "default" });
@@ -241,8 +242,7 @@ async function saveEdit() {
   if (!item.value || !editForm.value) return;
 
   try {
-    const updateData = {
-      ...item.value,
+    const updateData = buildItemUpdate(item.value, {
       name: editForm.value.name ?? item.value.name,
       description: editForm.value.description ?? item.value.description,
       locationId: editForm.value.location?.id ?? item.value.location?.id ?? "",
@@ -260,14 +260,7 @@ async function saveEdit() {
       lifetimeWarranty: editForm.value.lifetimeWarranty ?? item.value.lifetimeWarranty,
       insured: editForm.value.insured ?? item.value.insured,
       fields: editForm.value.fields ?? item.value.fields,
-      archived: item.value.archived,
-      assetId: item.value.assetId,
-      soldTime: item.value.soldTime,
-      soldTo: item.value.soldTo,
-      soldPrice: item.value.soldPrice,
-      soldNotes: item.value.soldNotes,
-      syncChildItemsLocations: item.value.syncChildItemsLocations,
-    };
+    });
 
     const resp = await api.items.update(item.value.id, updateData);
     if (resp.data) {
