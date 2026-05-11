@@ -17,6 +17,13 @@ const tree = useLocationTree();
 const { attachmentUrl: makeAttachmentUrl } = useAttachmentUrl();
 const itemId = computed(() => route.params.id as string);
 
+const backTarget = computed(() =>
+  resolveItemBackTarget(
+    typeof route.query.from === "string" ? route.query.from : undefined,
+    (id) => tree.getName(id),
+  ),
+);
+
 const item = ref<ItemOut | null>(null);
 const loading = ref(true);
 const children = ref<ItemSummary[]>([]);
@@ -267,12 +274,21 @@ function formatDate(date: Date | string | undefined): string {
 
 <template>
   <div class="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
+    <NuxtLink
+      v-if="backTarget.to"
+      :to="backTarget.to"
+      class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-w-0 max-w-full"
+    >
+      <ArrowLeft class="w-4 h-4 shrink-0" />
+      <span class="truncate">{{ backTarget.label }}</span>
+    </NuxtLink>
     <button
+      v-else
       class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       @click="router.back()"
     >
       <ArrowLeft class="w-4 h-4" />
-      Назад
+      {{ backTarget.label }}
     </button>
 
     <div v-if="loading" class="space-y-4">
