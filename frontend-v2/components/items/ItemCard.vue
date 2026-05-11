@@ -42,7 +42,10 @@ function handleClick(e: Event) {
 
 <template>
   <NuxtLink
-    :to="selectionMode ? undefined : `/items/${item.id}`"
+    :to="selectionMode ? undefined : {
+      path: `/items/${item.id}`,
+      query: currentLocationId ? { from: currentLocationId } : undefined,
+    }"
     class="group block bg-card border rounded-xl overflow-hidden transition-all"
     :class="[
       selected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/30 hover:shadow-sm',
