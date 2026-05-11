@@ -216,12 +216,11 @@ async function save(addNext: boolean) {
           toast.error(`Не удалось создать вещь (${i + 1}/${quantity.value})`);
           return;
         }
-        // Attach photo only to first item
-        if (i === 0 && photoFile.value && resp.data) {
+        if (photoFile.value && resp.data) {
           try {
             await api.items.attachments.add(resp.data.id, photoFile.value, photoFile.value.name, AttachmentTypes.Photo, true);
           } catch {
-            toast.error("Фото не загрузилось");
+            toast.error(`Фото не загрузилось (${i + 1}/${quantity.value})`);
           }
         }
       }
