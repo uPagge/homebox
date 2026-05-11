@@ -129,6 +129,7 @@ type (
 		ImportRef  *string     `json:"-"                  extensions:"x-nullable,x-omitempty"`
 		LocationID uuid.UUID   `json:"locationId"         extensions:"x-nullable,x-omitempty"`
 		TagIDs     []uuid.UUID `json:"tagIds"             extensions:"x-nullable,x-omitempty"`
+		Archived   *bool       `json:"archived,omitempty" extensions:"x-nullable,x-omitempty"`
 	}
 
 	ItemSummary struct {
@@ -1105,6 +1106,10 @@ func (e *ItemsRepository) Patch(ctx context.Context, gid, id uuid.UUID, data Ite
 
 	if data.LocationID != uuid.Nil {
 		q.SetLocationID(data.LocationID)
+	}
+
+	if data.Archived != nil {
+		q.SetArchived(*data.Archived)
 	}
 
 	err = q.Exec(ctx)

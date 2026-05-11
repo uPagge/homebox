@@ -709,3 +709,41 @@ func TestItemsRepository_QueryByGroup_ArchivedOnly(t *testing.T) {
 		}
 	})
 }
+
+func TestItemsRepository_Patch_Archived(t *testing.T) {
+	ctx := context.Background()
+	items := useItems(t, 1)
+	itm := items[0]
+	require.False(t, itm.Archived, "fresh item must be active")
+
+	truthy := true
+	err := tRepos.Items.Patch(ctx, tGroup.ID, itm.ID, ItemPatch{
+		ID:       itm.ID,
+		Archived: &truthy,
+	})
+	require.NoError(t, err)
+
+	after, err := tRepos.Items.GetOneByGroup(ctx, tGroup.ID, itm.ID)
+	require.NoError(t, err)
+	assert.True(t, after.Archived)
+
+	falsy := false
+	err = tRepos.Items.Patch(ctx, tGroup.ID, itm.ID, ItemPatch{
+		ID:       itm.ID,
+		Archived: &falsy,
+	})
+	require.NoError(t, err)
+
+	after2, err := tRepos.Items.GetOneByGroup(ctx, tGroup.ID, itm.ID)
+	require.NoError(t, err)
+	assert.False(t, after2.Archived)
+
+	err = tRepos.Items.Patch(ctx, tGroup.ID, itm.ID, ItemPatch{
+		ID: itm.ID,
+	})
+	require.NoError(t, err)
+
+	after3, err := tRepos.Items.GetOneByGroup(ctx, tGroup.ID, itm.ID)
+	require.NoError(t, err)
+	assert.False(t, after3.Archived)
+}
