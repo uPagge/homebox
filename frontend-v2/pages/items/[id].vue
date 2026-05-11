@@ -13,6 +13,7 @@ definePageMeta({ layout: "default" });
 const route = useRoute();
 const router = useRouter();
 const api = useUserApi();
+const tree = useLocationTree();
 const { attachmentUrl: makeAttachmentUrl } = useAttachmentUrl();
 const itemId = computed(() => route.params.id as string);
 
@@ -309,10 +310,15 @@ function formatDate(date: Date | string | undefined): string {
           <Boxes class="w-3.5 h-3.5 shrink-0" />
           <span class="truncate">В: {{ item.parent.name }}</span>
         </NuxtLink>
-        <div v-if="item.location" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs">
-          <MapPin class="w-3.5 h-3.5" />
-          {{ item.location.name }}
-        </div>
+        <NuxtLink
+          v-if="item.location"
+          :to="`/locations/${item.location.id}`"
+          :title="tree.getPathString(item.location.id) ?? item.location.name"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs hover:bg-accent hover:text-accent-foreground transition-colors max-w-[60vw] min-w-0"
+        >
+          <MapPin class="w-3.5 h-3.5 shrink-0" />
+          <bdi class="truncate text-start" style="direction: rtl">{{ tree.getPathString(item.location.id) ?? item.location.name }}</bdi>
+        </NuxtLink>
         <div
           v-for="tag in item.tags"
           :key="tag.id"
@@ -356,7 +362,7 @@ function formatDate(date: Date | string | undefined): string {
                 @change="editForm.location = { id: ($event.target as HTMLSelectElement).value, name: '', description: '', createdAt: '', updatedAt: '' }"
               >
                 <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
-                  {{ loc.name }}
+                  {{ tree.getPathString(loc.id) ?? loc.name }}
                 </option>
               </select>
             </div>
