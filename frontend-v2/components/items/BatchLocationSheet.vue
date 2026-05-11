@@ -14,6 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const api = useUserApi();
+const tree = useLocationTree();
 
 const locations = ref<LocationOutCount[]>([]);
 const locationSearch = ref("");
@@ -27,9 +28,17 @@ const filteredLocations = computed(() => {
   return locations.value.filter(l => l.name.toLowerCase().includes(q));
 });
 
-const selectedLocationName = computed(() =>
-  locations.value.find(l => l.id === locationId.value)?.name ?? ""
-);
+const selectedLocationName = computed(() => {
+  const loc = locations.value.find(l => l.id === locationId.value);
+  if (!loc) return "";
+  return tree.getPathString(loc.id) ?? loc.name;
+});
+
+function parentPathString(id: string): string {
+  const path = tree.getPath(id);
+  if (!path || path.length <= 1) return "";
+  return path.slice(0, -1).map(p => p.name).join(" › ");
+}
 
 watch(() => props.open, async (isOpen) => {
   if (isOpen) {
@@ -88,12 +97,20 @@ async function apply() {
           <button
             v-for="loc in filteredLocations"
             :key="loc.id"
-            class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+            class="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
             :class="loc.id === locationId ? 'bg-primary/10 text-primary font-medium' : ''"
             @click="locationId = loc.id; locationSearch = ''"
           >
-            {{ loc.name }}
-            <span class="text-xs text-muted-foreground ml-1">({{ loc.itemCount }})</span>
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-sm">{{ loc.name }}</span>
+              <span class="text-xs text-muted-foreground shrink-0">({{ loc.itemCount }})</span>
+            </div>
+            <div
+              v-if="parentPathString(loc.id)"
+              class="text-xs text-muted-foreground truncate"
+            >
+              {{ parentPathString(loc.id) }}
+            </div>
           </button>
           <div
             v-if="filteredLocations.length === 0"
