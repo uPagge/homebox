@@ -13,7 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
-  created: [];
+  created: [addNext: boolean];
 }>();
 
 const api = useUserApi();
@@ -272,7 +272,7 @@ async function save(addNext: boolean) {
     }
 
     lastLocationId.value = locationId.value;
-    emit("created");
+    emit("created", addNext);
 
     if (addNext) {
       name.value = "";

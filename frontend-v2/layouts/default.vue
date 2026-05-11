@@ -26,7 +26,8 @@ function selectCreate(type: CreateType) {
   activeCreate.value = type;
 }
 
-function onCreated() {
+function onCreated(addNext?: boolean) {
+  if (addNext) return;
   activeCreate.value = null;
 }
 
