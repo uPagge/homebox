@@ -19,6 +19,16 @@ const emit = defineEmits<{
 const api = useUserApi();
 const { attachmentUrl: makeAttachmentUrl } = useAttachmentUrl();
 
+const attachmentViews = computed(() =>
+  props.attachments.map(att => ({
+    ...att,
+    thumbUrl:
+      att.type === "photo" && att.thumbnail?.id
+        ? makeAttachmentUrl(props.itemId, att.thumbnail.id)
+        : null,
+  })),
+);
+
 const photoInput = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 
@@ -262,15 +272,15 @@ function labelForType(type: string): string {
         </div>
 
         <ul v-if="attachments.length" class="border border-border rounded-lg overflow-hidden divide-y divide-border">
-          <li :key="att.id" :data-attachment-row="att.id" class="bg-card" v-for="att in attachments">
+          <li :key="att.id" :data-attachment-row="att.id" class="bg-card" v-for="att in attachmentViews">
             <button
               class="w-full flex items-center gap-3 p-3 text-left hover:bg-accent/40 transition-colors"
               @click="toggleExpand(att)"
             >
               <div class="w-10 h-10 shrink-0 rounded-md bg-muted/30 border border-border flex items-center justify-center overflow-hidden">
                 <img
-                  v-if="att.type === 'photo' && att.thumbnail?.id"
-                  :src="makeAttachmentUrl(itemId, att.thumbnail.id)"
+                  v-if="att.thumbUrl"
+                  :src="att.thumbUrl"
                   :alt="att.title"
                   class="w-full h-full object-cover"
                 />
