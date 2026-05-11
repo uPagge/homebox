@@ -4,6 +4,7 @@ import {
   Shield, ShieldAlert, ShieldCheck,
   Paperclip, Star, ScanLine,
   Archive, ArchiveRestore, Boxes,
+  Scissors,
 } from "lucide-vue-next";
 import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
@@ -57,6 +58,30 @@ async function fetchChildren() {
 async function handleChildQuantityUpdate(id: string, quantity: number) {
   await api.items.patch(id, { id, quantity });
   fetchChildren();
+}
+
+async function handleQuantityUpdate(quantity: number) {
+  if (!item.value) return;
+  const prev = item.value.quantity;
+  item.value.quantity = quantity;
+  try {
+    await api.items.patch(item.value.id, { id: item.value.id, quantity });
+  } catch (e) {
+    if (item.value) item.value.quantity = prev;
+    toast.error(`Не удалось обновить количество: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+const showSplit = ref(false);
+
+function onSplitDone({ newItemId, newName }: { newItemId: string; newName: string }) {
+  fetchItem();
+  toast.success(`Создан "${newName}"`, {
+    action: {
+      label: "Открыть",
+      onClick: () => router.push(`/items/${newItemId}`),
+    },
+  });
 }
 
 onMounted(() => {
@@ -359,8 +384,17 @@ function formatDate(date: Date | string | undefined): string {
           <Tag class="w-3.5 h-3.5" />
           {{ tag.name }}
         </div>
-        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs">
-          Кол-во: {{ item.quantity }}
+        <div class="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs">
+          <span>Кол-во:</span>
+          <QuantityStepper :quantity="item.quantity" @update="handleQuantityUpdate" />
+          <button
+            v-if="item.quantity > 1"
+            class="ml-0.5 p-1 rounded hover:bg-accent text-muted-foreground transition-colors"
+            title="Разделить"
+            @click="showSplit = true"
+          >
+            <Scissors class="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -643,6 +677,14 @@ function formatDate(date: Date | string | undefined): string {
       :force-queue-mode="true"
       @update:open="showMoveScanner = $event"
       @done="fetchItem()"
+    />
+
+    <SplitSheet
+      v-if="item"
+      :open="showSplit"
+      :item="item"
+      @update:open="showSplit = $event"
+      @done="onSplitDone"
     />
   </div>
 </template>
