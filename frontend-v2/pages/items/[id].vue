@@ -3,6 +3,7 @@ import {
   ArrowLeft, MapPin, Tag, Copy, Trash2,
   Shield, ShieldAlert, ShieldCheck,
   Paperclip, Star, ScanLine,
+  Archive, ArchiveRestore,
 } from "lucide-vue-next";
 import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
 import { toast } from "vue-sonner";
@@ -81,6 +82,21 @@ async function duplicateItem() {
   if (resp.data) {
     toast.success("Копия создана");
     router.push(`/items/${resp.data.id}`);
+  }
+}
+
+async function toggleArchive() {
+  if (!item.value) return;
+  const target = !item.value.archived;
+  const resp = await api.items.patch(item.value.id, {
+    id: item.value.id,
+    archived: target,
+  });
+  if (resp.data) {
+    item.value = resp.data;
+    toast.success(target ? "В архив" : "Возвращено из архива");
+  } else {
+    toast.error("Не удалось изменить статус архива");
   }
 }
 
@@ -252,7 +268,16 @@ function formatDate(date: Date | string | undefined): string {
       </div>
 
       <div>
-        <h1 class="text-xl font-semibold">{{ item.name }}</h1>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-xl font-semibold">{{ item.name }}</h1>
+          <span
+            v-if="item.archived"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs"
+          >
+            <Archive class="w-3 h-3" />
+            В архиве
+          </span>
+        </div>
         <p v-if="item.description" class="text-muted-foreground text-sm mt-1">{{ item.description }}</p>
       </div>
 
@@ -484,7 +509,7 @@ function formatDate(date: Date | string | undefined): string {
       <!-- Niimbot Print -->
       <NiimbotPrintSection type="item" :id="itemId" />
 
-      <div class="flex gap-2 pt-2">
+      <div class="flex gap-2 pt-2 flex-wrap">
         <Button variant="outline" class="flex-1 gap-2" @click="showMoveScanner = true">
           <ScanLine class="w-4 h-4" />
           Переместить
@@ -492,6 +517,10 @@ function formatDate(date: Date | string | undefined): string {
         <Button variant="outline" class="flex-1 gap-2" @click="duplicateItem">
           <Copy class="w-4 h-4" />
           Копировать
+        </Button>
+        <Button variant="outline" class="flex-1 gap-2" @click="toggleArchive">
+          <component :is="item.archived ? ArchiveRestore : Archive" class="w-4 h-4" />
+          {{ item.archived ? 'Вернуть' : 'Архив' }}
         </Button>
         <Button variant="outline" class="flex-1 gap-2 text-destructive hover:text-destructive" @click="showDeleteDialog = true">
           <Trash2 class="w-4 h-4" />
