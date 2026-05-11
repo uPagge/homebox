@@ -157,23 +157,26 @@ export function useNiimbot() {
 
       // Load and process label image
       const img = await loadImage(imageUrl);
-      const trimmed = trimWhitespace(img);
-      // Pad with a small white margin so the QR finder patterns survive
-      // Niimbot's ±0.3–0.5 mm feed drift (≈2–4 dots @ 203 DPI) and ZXing
-      // still has ≥2 modules of quiet zone to lock onto. 24 source pixels
-      // lands at ~17 final px after the resize-to-label step.
-      const cropped = padCanvasWhite(trimmed, 24);
+      const cropped = trimWhitespace(img);
 
       // Auto-rotate if orientation mismatch
       const imgIsLandscape = cropped.width > cropped.height;
       const tapeIsLandscape = labelWidthPx > labelHeightPx;
       const srcImg = imgIsLandscape !== tapeIsLandscape ? rotateImage90(cropped) : cropped;
 
-      // Render label at tape dimensions
-      const labelCanvas = resizeToCanvas(srcImg, labelWidthPx, labelHeightPx);
+      // Reserve a fixed-pixel margin inside the label area so the QR's quiet
+      // zone is preserved regardless of source image size. trimWhitespace
+      // crops the server PNG's built-in quiet zone, so without this margin
+      // the QR data sits flush with the label edge — fine for ZXing on
+      // /labelmaker (text+QR), bad for /qrcode (QR-only, source ~1200 px,
+      // where source-side padding gets resized to invisibility).
+      const labelMarginPx = 8;
+      const contentW = Math.max(1, labelWidthPx - labelMarginPx * 2);
+      const contentH = Math.max(1, labelHeightPx - labelMarginPx * 2);
+      const labelCanvas = resizeToCanvas(srcImg, contentW, contentH);
       applyThreshold(labelCanvas, 128);
 
-      // Center on printhead-wide canvas
+      // Center on printhead-wide canvas with the reserved margin
       const canvas = document.createElement("canvas");
       canvas.width = printheadPx;
       canvas.height = labelHeightPx;
@@ -181,8 +184,8 @@ export function useNiimbot() {
       if (!ctx) throw new Error("Failed to create canvas context");
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const offsetX = Math.floor((printheadPx - labelWidthPx) / 2);
-      ctx.drawImage(labelCanvas, offsetX, 0);
+      const offsetX = Math.floor((printheadPx - contentW) / 2);
+      ctx.drawImage(labelCanvas, offsetX, labelMarginPx);
 
       // Encode for printer
       const encoded = lib.ImageEncoder.encodeCanvas(canvas, "top");
@@ -195,7 +198,7 @@ export function useNiimbot() {
       const printTask = c.abstraction.newPrintTask(taskType, {
         totalPages: quantity,
         labelType: lib.LabelType.WithGaps,
-        density: 3,
+        density: 5,
       });
 
       await printTask.printInit();
@@ -301,18 +304,6 @@ function trimWhitespace(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasEl
   if (!rctx) throw new Error("Failed to create canvas context for crop");
   rctx.drawImage(tmpCanvas, left, top, cropW, cropH, 0, 0, cropW, cropH);
   return result;
-}
-
-function padCanvasWhite(src: HTMLImageElement | HTMLCanvasElement, marginPx: number): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = src.width + marginPx * 2;
-  canvas.height = src.height + marginPx * 2;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Failed to create canvas context for padding");
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(src, marginPx, marginPx);
-  return canvas;
 }
 
 function rotateImage90(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
