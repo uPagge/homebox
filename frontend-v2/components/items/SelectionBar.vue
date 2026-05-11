@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { MapPin, TagsIcon, Minus, Copy, Trash2 } from "lucide-vue-next";
+import { MapPin, TagsIcon, Minus, Copy, Trash2, Archive } from "lucide-vue-next";
 
 defineProps<{
   count: number;
+  archiveLabel?: string;
 }>();
 
 const emit = defineEmits<{
@@ -10,6 +11,7 @@ const emit = defineEmits<{
   addTags: [];
   removeTags: [];
   duplicate: [];
+  archive: [];
   delete: [];
 }>();
 </script>
@@ -51,6 +53,13 @@ const emit = defineEmits<{
           @click="emit('duplicate')"
         >
           <Copy class="w-4 h-4" />
+        </button>
+        <button
+          class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          :title="archiveLabel ?? 'Архивировать'"
+          @click="emit('archive')"
+        >
+          <Archive class="w-4 h-4" />
         </button>
 
         <div class="w-px h-5 bg-border" />

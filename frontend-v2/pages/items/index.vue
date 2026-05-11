@@ -63,7 +63,12 @@ const showBatchTagAdd = ref(false);
 const showBatchTagRemove = ref(false);
 const showBatchDelete = ref(false);
 const showBatchDuplicate = ref(false);
+const showBatchArchive = ref(false);
 const showMoveScanner = ref(false);
+
+const batchArchiveLabel = computed(() =>
+  selectedItems.value.some(i => !i.archived) ? "Архивировать" : "Вернуть из архива"
+);
 
 // Debounced search
 const searchInput = ref(filters.q);
@@ -235,10 +240,12 @@ onMounted(() => fetchItems());
     <SelectionBar
       v-if="selectionMode && selectedIds.size > 0"
       :count="selectedIds.size"
+      :archive-label="batchArchiveLabel"
       @change-location="showBatchLocation = true"
       @add-tags="showBatchTagAdd = true"
       @remove-tags="showBatchTagRemove = true"
       @duplicate="showBatchDuplicate = true"
+      @archive="showBatchArchive = true"
       @delete="showBatchDelete = true"
     />
 
@@ -273,6 +280,12 @@ onMounted(() => fetchItems());
       :open="showBatchDuplicate"
       :items="selectedItems"
       @update:open="showBatchDuplicate = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchArchiveSheet
+      :open="showBatchArchive"
+      :items="selectedItems"
+      @update:open="showBatchArchive = $event"
       @done="fetchItems(); exitSelectionMode()"
     />
     <MoveScannerSheet
