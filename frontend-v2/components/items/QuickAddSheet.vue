@@ -117,6 +117,16 @@ function selectParent(item: ItemSummary) {
   parentResults.value = [];
 }
 
+async function onScannedParent(target: { kind: "item" | "location"; id: string }) {
+  const resp = await api.items.get(target.id);
+  if (resp.error || !resp.data) {
+    toast.error("Вещь не найдена");
+    return;
+  }
+  // ItemOut is a superset of ItemSummary — all ItemSummary fields are present.
+  selectParent(resp.data as ItemSummary);
+}
+
 function clearParent() {
   selectedParent.value = null;
   parentId.value = "";
@@ -533,14 +543,17 @@ function resetAndClose() {
           <!-- Parent item (optional) -->
           <div>
             <label class="text-sm font-medium">Родительская вещь</label>
-            <div v-if="!selectedParent" class="mt-1 relative">
-              <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                v-model="parentSearch"
-                type="text"
-                class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Поиск вещи..."
-              />
+            <div v-if="!selectedParent" class="mt-1 flex gap-2">
+              <div class="relative flex-1">
+                <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  v-model="parentSearch"
+                  type="text"
+                  class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="Поиск вещи..."
+                />
+              </div>
+              <ScannerPickerButton :accepts="['item']" @picked="onScannedParent" />
             </div>
             <div
               v-if="!selectedParent && parentSearch"
