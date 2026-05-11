@@ -34,6 +34,15 @@ const selectedLocationName = computed(() => {
   return tree.getPathString(loc.id) ?? loc.name;
 });
 
+function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+  if (!locations.value.some(l => l.id === target.id)) {
+    toast.error("Локация не найдена в списке");
+    return;
+  }
+  locationId.value = target.id;
+  locationSearch.value = "";
+}
+
 watch(() => props.open, async (isOpen) => {
   if (isOpen) {
     locationSearch.value = "";
@@ -72,15 +81,18 @@ async function apply() {
       </DrawerHeader>
 
       <div class="px-4 pb-6 space-y-4">
-        <!-- Location search -->
-        <div class="relative">
-          <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
-            v-model="locationSearch"
-            type="text"
-            class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            :placeholder="selectedLocationName || 'Поиск локации...'"
-          />
+        <!-- Location search + scan -->
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              v-model="locationSearch"
+              type="text"
+              class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              :placeholder="selectedLocationName || 'Поиск локации...'"
+            />
+          </div>
+          <ScannerPickerButton :accepts="['location']" @picked="onScannedLocation" />
         </div>
 
         <!-- Location list -->
