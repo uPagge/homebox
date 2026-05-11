@@ -20,13 +20,13 @@ describe("decideScanPickAction", () => {
   it("reports mismatch when location-only field gets an item QR", () => {
     expect(
       decideScanPickAction(`https://h.local/items/${ITEM_UUID}`, ["location"]),
-    ).toEqual({ type: "mismatch", expected: "location" });
+    ).toEqual({ type: "mismatch", accepts: ["location"] });
   });
 
   it("reports mismatch when item-only field gets a location QR", () => {
     expect(
       decideScanPickAction(`https://h.local/locations/${LOC_UUID}`, ["item"]),
-    ).toEqual({ type: "mismatch", expected: "item" });
+    ).toEqual({ type: "mismatch", accepts: ["item"] });
   });
 
   it("picks either kind when accepts=['location','item']", () => {
@@ -36,6 +36,12 @@ describe("decideScanPickAction", () => {
     expect(
       decideScanPickAction(`https://h.local/locations/${LOC_UUID}`, ["item", "location"]),
     ).toEqual({ type: "pick", target: { kind: "location", id: LOC_UUID } });
+  });
+
+  it("reports mismatch with empty accepts (closed default)", () => {
+    expect(
+      decideScanPickAction(`https://h.local/locations/${LOC_UUID}`, []),
+    ).toEqual({ type: "mismatch", accepts: [] });
   });
 
   it("reports not_homebox for non-URL text", () => {

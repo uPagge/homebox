@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import { Lightbulb, ChevronsUpDown, Check } from "lucide-vue-next";
+import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
 
 const props = defineProps<{
   open: boolean;
@@ -56,7 +57,7 @@ function selectParent(id: string) {
   parentSearch.value = "";
 }
 
-function onScannedParent(target: { kind: "item" | "location"; id: string }) {
+function onScannedParent(target: HomeboxTarget) {
   if (tree.getNode(target.id) === null) {
     toast.error("Локация не найдена в списке");
     return;

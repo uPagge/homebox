@@ -6,6 +6,7 @@ import {
   Archive, ArchiveRestore, Boxes,
 } from "lucide-vue-next";
 import type { ItemOut, ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
+import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
 import { toast } from "vue-sonner";
 
 definePageMeta({ layout: "default" });
@@ -263,7 +264,7 @@ async function loadLocationsForEdit() {
   if (resp.data) allLocations.value = resp.data;
 }
 
-function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+function onScannedLocation(target: HomeboxTarget) {
   const found = allLocations.value.find(l => l.id === target.id);
   if (!found) {
     toast.error("Локация не найдена в списке");

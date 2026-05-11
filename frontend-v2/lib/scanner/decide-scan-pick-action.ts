@@ -4,7 +4,7 @@ export type ScanPickKind = HomeboxTarget["kind"];
 
 export type ScanPickAction =
   | { type: "pick"; target: HomeboxTarget }
-  | { type: "mismatch"; expected: ScanPickKind | "either" }
+  | { type: "mismatch"; accepts: readonly ScanPickKind[] }
   | { type: "not_homebox" };
 
 export function decideScanPickAction(
@@ -14,9 +14,7 @@ export function decideScanPickAction(
   const target = parseHomeboxTarget(text);
   if (!target) return { type: "not_homebox" };
   if (!accepts.includes(target.kind)) {
-    const expected: ScanPickKind | "either" =
-      accepts.length === 1 ? accepts[0]! : "either";
-    return { type: "mismatch", expected };
+    return { type: "mismatch", accepts };
   }
   return { type: "pick", target };
 }

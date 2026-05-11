@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Search, X } from "lucide-vue-next";
 import type { ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
+import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
 import { toast } from "vue-sonner";
 
 const props = defineProps<{
@@ -34,7 +35,7 @@ const selectedLocationName = computed(() => {
   return tree.getPathString(loc.id) ?? loc.name;
 });
 
-function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+function onScannedLocation(target: HomeboxTarget) {
   if (!locations.value.some(l => l.id === target.id)) {
     toast.error("Локация не найдена в списке");
     return;

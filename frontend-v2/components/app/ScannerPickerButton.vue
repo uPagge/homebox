@@ -21,8 +21,8 @@ const emit = defineEmits<{
 
 const open = ref(false);
 
-// Hide on platforms without camera or in insecure contexts (http on non-localhost).
-// Same pattern as NiimbotPrint uses for Web Bluetooth.
+// Hide rather than disable when the platform lacks a camera: disabled-with-tooltip
+// adds noise on desktops where the user can never use the feature anyway.
 const isSupported = computed(() => {
   if (typeof navigator === "undefined") return false;
   return Boolean(navigator.mediaDevices?.getUserMedia);
@@ -35,6 +35,12 @@ const derivedAriaLabel = computed(() => {
   return "Сканировать";
 });
 
+function mismatchMessage(accepts: readonly ScanPickKind[]): string {
+  if (accepts.length === 1 && accepts[0] === "location") return "Ожидается локация";
+  if (accepts.length === 1 && accepts[0] === "item") return "Ожидается вещь";
+  return "Не подходит для этого поля";
+}
+
 function onScan(r: ScanResult): void {
   const action = decideScanPickAction(r.text, props.accepts);
   switch (action.type) {
@@ -43,9 +49,7 @@ function onScan(r: ScanResult): void {
       emit("picked", action.target);
       return;
     case "mismatch":
-      if (action.expected === "location") toast.error("Ожидается локация");
-      else if (action.expected === "item") toast.error("Ожидается вещь");
-      else toast.error("Не подходит для этого поля");
+      toast.error(mismatchMessage(action.accepts));
       return;
     case "not_homebox":
       toast.error("QR не из Homebox");

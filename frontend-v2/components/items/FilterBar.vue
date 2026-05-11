@@ -2,6 +2,7 @@
 import { X, MapPin, Tag, Archive } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import type { LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
+import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
 
 const props = defineProps<{
   selectedLocations: string[];
@@ -47,7 +48,7 @@ function tagName(id: string) {
   return tags.value.find(t => t.id === id)?.name ?? "...";
 }
 
-function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+function onScannedLocation(target: HomeboxTarget) {
   if (!locations.value.some(l => l.id === target.id)) {
     toast.error("Локация не найдена в списке");
     return;

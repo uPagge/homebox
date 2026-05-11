@@ -2,6 +2,7 @@
 import { Search, Camera, X, Plus } from "lucide-vue-next";
 import { useDebounceFn } from "@vueuse/core";
 import type { ItemSummary, LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
+import type { HomeboxTarget } from "~/lib/scanner/parse-homebox-url";
 import { AttachmentTypes } from "~~/lib/api/types/non-generated";
 import { toast } from "vue-sonner";
 
@@ -68,7 +69,7 @@ const selectedLocationName = computed(() => {
   return tree.getPathString(loc.id) ?? loc.name;
 });
 
-function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+function onScannedLocation(target: HomeboxTarget) {
   if (!locations.value.some(l => l.id === target.id)) {
     toast.error("Локация не найдена в списке");
     return;
@@ -117,7 +118,7 @@ function selectParent(item: ItemSummary) {
   parentResults.value = [];
 }
 
-async function onScannedParent(target: { kind: "item" | "location"; id: string }) {
+async function onScannedParent(target: HomeboxTarget) {
   const resp = await api.items.get(target.id);
   if (resp.error || !resp.data) {
     toast.error("Вещь не найдена");
