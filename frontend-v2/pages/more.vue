@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Download, Settings, Tag, Wrench } from "lucide-vue-next";
+import { Download, Settings, Tag, Wrench, Archive } from "lucide-vue-next";
 
 const links = [
+  { to: "/items/archived", icon: Archive, label: "Архив" },
   { to: "/labels", icon: Tag, label: "Теги" },
   { to: "/maintenance", icon: Wrench, label: "Обслуживание" },
   { to: "/settings", icon: Settings, label: "Настройки" },
