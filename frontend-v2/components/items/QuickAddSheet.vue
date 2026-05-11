@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Search, Camera, X } from "lucide-vue-next";
+import { Search, Camera, X, Plus } from "lucide-vue-next";
 import { useDebounceFn } from "@vueuse/core";
-import type { ItemSummary, LocationOutCount } from "~~/lib/api/types/data-contracts";
+import type { ItemSummary, LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
 import { AttachmentTypes } from "~~/lib/api/types/non-generated";
 import { toast } from "vue-sonner";
 
@@ -111,9 +111,71 @@ function clearParent() {
   parentId.value = "";
 }
 
+// Tags
+const allTags = ref<TagOut[]>([]);
+const tagSearch = ref("");
+const selectedTags = ref<TagOut[]>([]);
+const tagInputFocused = ref(false);
+const tagCreating = ref(false);
+
+async function loadTags() {
+  const resp = await api.tags.getAll();
+  if (resp.data) allTags.value = resp.data;
+}
+
+const tagSuggestions = computed(() => {
+  const q = tagSearch.value.trim().toLowerCase();
+  const selectedIds = new Set(selectedTags.value.map(t => t.id));
+  const pool = allTags.value.filter(t => !selectedIds.has(t.id));
+  if (!q) return pool;
+  return pool.filter(t => t.name.toLowerCase().includes(q));
+});
+
+const canCreateNewTag = computed(() => {
+  const q = tagSearch.value.trim();
+  if (!q) return false;
+  const lower = q.toLowerCase();
+  const existsInAll = allTags.value.some(t => t.name.toLowerCase() === lower);
+  const existsInSelected = selectedTags.value.some(t => t.name.toLowerCase() === lower);
+  return !existsInAll && !existsInSelected;
+});
+
+function selectTag(tag: TagOut) {
+  if (selectedTags.value.some(t => t.id === tag.id)) return;
+  selectedTags.value = [...selectedTags.value, tag];
+  tagSearch.value = "";
+}
+
+function removeTag(id: string) {
+  selectedTags.value = selectedTags.value.filter(t => t.id !== id);
+}
+
+async function createTagInline() {
+  const name = tagSearch.value.trim();
+  if (!name || tagCreating.value) return;
+  tagCreating.value = true;
+  try {
+    const resp = await api.tags.create({ name, color: "", description: "" });
+    if (resp.error || !resp.data) {
+      toast.error("Не удалось создать тег");
+      return;
+    }
+    allTags.value = [...allTags.value, resp.data];
+    selectedTags.value = [...selectedTags.value, resp.data];
+    tagSearch.value = "";
+  } finally {
+    tagCreating.value = false;
+  }
+}
+
+function onTagInputBlur() {
+  setTimeout(() => { tagInputFocused.value = false; }, 150);
+}
+
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     loadLocations();
+    loadTags();
     locationSearch.value = "";
   }
 });
@@ -145,7 +207,7 @@ async function save(addNext: boolean) {
           locationId: locationId.value,
           quantity: 1,
           description: description.value,
-          tagIds: [],
+          tagIds: selectedTags.value.map(t => t.id),
           parentId: parentId.value || undefined,
         });
         if (resp.error) {
@@ -169,7 +231,7 @@ async function save(addNext: boolean) {
         locationId: locationId.value,
         quantity: quantity.value,
         description: description.value,
-        tagIds: [],
+        tagIds: selectedTags.value.map(t => t.id),
         parentId: parentId.value || undefined,
       });
 
@@ -200,6 +262,8 @@ async function save(addNext: boolean) {
       clearParent();
       parentSearch.value = "";
       parentResults.value = [];
+      selectedTags.value = [];
+      tagSearch.value = "";
     } else {
       resetAndClose();
     }
@@ -220,6 +284,8 @@ function resetAndClose() {
   clearParent();
   parentSearch.value = "";
   parentResults.value = [];
+  selectedTags.value = [];
+  tagSearch.value = "";
   emit("update:open", false);
 }
 </script>
@@ -374,6 +440,75 @@ function resetAndClose() {
               placeholder="Описание вещи"
               rows="3"
             />
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="text-sm font-medium">Теги</label>
+            <div class="mt-1 relative">
+              <Search class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                v-model="tagSearch"
+                type="text"
+                class="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Поиск или создание тега..."
+                @focus="tagInputFocused = true"
+                @blur="onTagInputBlur"
+              />
+            </div>
+            <div
+              v-if="tagInputFocused && (tagSuggestions.length > 0 || canCreateNewTag)"
+              class="mt-1 max-h-36 overflow-y-auto border border-border rounded-lg bg-card"
+            >
+              <button
+                v-for="tag in tagSuggestions"
+                :key="tag.id"
+                type="button"
+                class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                @mousedown.prevent="selectTag(tag)"
+              >
+                <div
+                  v-if="tag.color"
+                  class="w-2.5 h-2.5 rounded-full shrink-0"
+                  :style="{ backgroundColor: tag.color }"
+                />
+                <span>{{ tag.name }}</span>
+              </button>
+              <button
+                v-if="canCreateNewTag"
+                type="button"
+                :disabled="tagCreating"
+                class="w-full text-left px-3 py-2 text-sm text-primary hover:bg-accent transition-colors flex items-center gap-2 border-t border-border"
+                @mousedown.prevent="createTagInline"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                <span>{{ tagCreating ? 'Создаём…' : `Создать тег «${tagSearch.trim()}»` }}</span>
+              </button>
+            </div>
+            <div
+              v-if="selectedTags.length > 0"
+              class="mt-2 flex flex-wrap gap-1.5"
+            >
+              <span
+                v-for="tag in selectedTags"
+                :key="tag.id"
+                class="inline-flex items-center gap-1.5 px-2 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs"
+              >
+                <span
+                  v-if="tag.color"
+                  class="w-2 h-2 rounded-full"
+                  :style="{ backgroundColor: tag.color }"
+                />
+                <span>{{ tag.name }}</span>
+                <button
+                  type="button"
+                  class="text-muted-foreground hover:text-foreground"
+                  @click="removeTag(tag.id)"
+                >
+                  <X class="w-3 h-3" />
+                </button>
+              </span>
+            </div>
           </div>
 
           <!-- Parent item (optional) -->
