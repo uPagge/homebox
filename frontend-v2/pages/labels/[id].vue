@@ -69,6 +69,25 @@ async function handleQuantityUpdate(id: string, quantity: number) {
   fetchItems();
 }
 
+const {
+  selectionMode,
+  selectedIds,
+  selectedItems,
+  toggleSelection,
+  toggleSelectAll,
+  clearSelection,
+  exitSelectionMode,
+  showBatchLocation,
+  showBatchTagAdd,
+  showBatchTagRemove,
+  showBatchDelete,
+  showBatchDuplicate,
+  showBatchArchive,
+  batchArchiveLabel,
+} = useItemSelection(items);
+
+watch([labelId, page], clearSelection);
+
 // Inline edit
 const editing = ref(false);
 const editName = ref("");
@@ -205,12 +224,29 @@ onMounted(() => {
 
       <!-- Items section -->
       <section>
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-3 gap-2">
           <h2 class="text-sm font-medium">
             Предметы
             <span class="text-muted-foreground font-normal">({{ totalItems }})</span>
           </h2>
           <div class="flex items-center gap-1">
+            <button
+              v-if="totalItems > 0"
+              class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+              :class="selectionMode
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent'"
+              @click="selectionMode ? exitSelectionMode() : (selectionMode = true)"
+            >
+              {{ selectionMode ? `Выбрано: ${selectedIds.size}` : 'Выбрать' }}
+            </button>
+            <button
+              v-if="selectionMode"
+              class="px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-accent transition-colors"
+              @click="toggleSelectAll"
+            >
+              {{ selectedIds.size === items.length ? 'Снять все' : 'Все' }}
+            </button>
             <button
               class="p-1.5 rounded-md transition-colors"
               :class="viewMode === 'card' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent'"
@@ -250,7 +286,10 @@ onMounted(() => {
             v-for="item in items"
             :key="item.id"
             :item="item"
+            :selection-mode="selectionMode"
+            :selected="selectedIds.has(item.id)"
             @quantity-update="handleQuantityUpdate"
+            @toggle-select="toggleSelection"
           />
         </div>
 
@@ -260,7 +299,10 @@ onMounted(() => {
             v-for="item in items"
             :key="item.id"
             :item="item"
+            :selection-mode="selectionMode"
+            :selected="selectedIds.has(item.id)"
             @quantity-update="handleQuantityUpdate"
+            @toggle-select="toggleSelection"
           />
         </div>
 
@@ -286,6 +328,57 @@ onMounted(() => {
         </div>
       </section>
     </template>
+
+    <SelectionBar
+      v-if="selectionMode && selectedIds.size > 0"
+      :count="selectedIds.size"
+      :archive-label="batchArchiveLabel"
+      @change-location="showBatchLocation = true"
+      @add-tags="showBatchTagAdd = true"
+      @remove-tags="showBatchTagRemove = true"
+      @duplicate="showBatchDuplicate = true"
+      @archive="showBatchArchive = true"
+      @delete="showBatchDelete = true"
+    />
+
+    <BatchLocationSheet
+      :open="showBatchLocation"
+      :items="selectedItems"
+      @update:open="showBatchLocation = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchTagSheet
+      :open="showBatchTagAdd"
+      :items="selectedItems"
+      mode="add"
+      @update:open="showBatchTagAdd = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchTagSheet
+      :open="showBatchTagRemove"
+      :items="selectedItems"
+      mode="remove"
+      @update:open="showBatchTagRemove = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchDeleteSheet
+      :open="showBatchDelete"
+      :items="selectedItems"
+      @update:open="showBatchDelete = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchDuplicateSheet
+      :open="showBatchDuplicate"
+      :items="selectedItems"
+      @update:open="showBatchDuplicate = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchArchiveSheet
+      :open="showBatchArchive"
+      :items="selectedItems"
+      @update:open="showBatchArchive = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
 
     <!-- Delete dialog -->
     <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">

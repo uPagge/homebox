@@ -12,63 +12,26 @@ const viewMode = computed({
   set: (v) => { preferences.value.itemDisplayView = v; },
 });
 
-// Selection mode
-const selectionMode = ref(false);
-const selectedIds = ref<Set<string>>(new Set());
+const {
+  selectionMode,
+  selectedIds,
+  selectedItems,
+  toggleSelection,
+  toggleSelectAll,
+  clearSelection,
+  exitSelectionMode,
+  showBatchLocation,
+  showBatchTagAdd,
+  showBatchTagRemove,
+  showBatchDelete,
+  showBatchDuplicate,
+  showBatchArchive,
+  batchArchiveLabel,
+} = useItemSelection(items);
 
-function toggleSelection(id: string) {
-  const s = new Set(selectedIds.value);
-  if (s.has(id)) s.delete(id);
-  else s.add(id);
-  selectedIds.value = s;
-}
+watch([() => filters.page, () => filters.q, () => filters.locations, () => filters.tags], clearSelection);
 
-function toggleSelectAll() {
-  if (selectedIds.value.size === items.value.length) {
-    selectedIds.value = new Set();
-  } else {
-    selectedIds.value = new Set(items.value.map(i => i.id));
-  }
-}
-
-function exitSelectionMode() {
-  selectionMode.value = false;
-  selectedIds.value = new Set();
-}
-
-// Clear selection on page/filter change
-watch([() => filters.page, () => filters.q, () => filters.locations, () => filters.tags], () => {
-  selectedIds.value = new Set();
-});
-
-// ESC to exit selection mode
-onMounted(() => {
-  const handler = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && selectionMode.value) {
-      exitSelectionMode();
-    }
-  };
-  document.addEventListener("keydown", handler);
-  onUnmounted(() => document.removeEventListener("keydown", handler));
-});
-
-// Selected items as array (for batch sheets)
-const selectedItems = computed(() =>
-  items.value.filter(i => selectedIds.value.has(i.id))
-);
-
-// Batch action sheets
-const showBatchLocation = ref(false);
-const showBatchTagAdd = ref(false);
-const showBatchTagRemove = ref(false);
-const showBatchDelete = ref(false);
-const showBatchDuplicate = ref(false);
-const showBatchArchive = ref(false);
 const showMoveScanner = ref(false);
-
-const batchArchiveLabel = computed(() =>
-  selectedItems.value.some(i => !i.archived) ? "Архивировать" : "Вернуть из архива"
-);
 
 // Debounced search
 const searchInput = ref(filters.q);

@@ -124,6 +124,25 @@ async function handleQuantityUpdate(id: string, quantity: number) {
   fetchItems();
 }
 
+const {
+  selectionMode,
+  selectedIds,
+  selectedItems,
+  toggleSelection,
+  toggleSelectAll,
+  clearSelection,
+  exitSelectionMode,
+  showBatchLocation,
+  showBatchTagAdd,
+  showBatchTagRemove,
+  showBatchDelete,
+  showBatchDuplicate,
+  showBatchArchive,
+  batchArchiveLabel,
+} = useItemSelection(items);
+
+watch([locationId, recursive, page], clearSelection);
+
 // Edit mode
 const editing = ref(false);
 const editName = ref("");
@@ -331,6 +350,23 @@ watch(locationId, () => {
           </h2>
           <div class="flex items-center gap-1">
             <button
+              v-if="totalItems > 0"
+              class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+              :class="selectionMode
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent'"
+              @click="selectionMode ? exitSelectionMode() : (selectionMode = true)"
+            >
+              {{ selectionMode ? `Выбрано: ${selectedIds.size}` : 'Выбрать' }}
+            </button>
+            <button
+              v-if="selectionMode"
+              class="px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-accent transition-colors"
+              @click="toggleSelectAll"
+            >
+              {{ selectedIds.size === items.length ? 'Снять все' : 'Все' }}
+            </button>
+            <button
               class="p-1.5 rounded-md text-muted-foreground hover:bg-accent transition-colors"
               :disabled="totalItems === 0"
               :class="totalItems === 0 ? 'opacity-40 cursor-not-allowed' : ''"
@@ -400,7 +436,10 @@ watch(locationId, () => {
             :key="item.id"
             :item="item"
             :current-location-id="locationId"
+            :selection-mode="selectionMode"
+            :selected="selectedIds.has(item.id)"
             @quantity-update="handleQuantityUpdate"
+            @toggle-select="toggleSelection"
           />
         </div>
 
@@ -411,7 +450,10 @@ watch(locationId, () => {
             :key="item.id"
             :item="item"
             :current-location-id="locationId"
+            :selection-mode="selectionMode"
+            :selected="selectedIds.has(item.id)"
             @quantity-update="handleQuantityUpdate"
+            @toggle-select="toggleSelection"
           />
         </div>
 
@@ -481,6 +523,57 @@ watch(locationId, () => {
       :force-queue-mode="true"
       @update:open="showMoveScanner = $event"
       @done="fetchItems(); fetchLocation()"
+    />
+
+    <SelectionBar
+      v-if="selectionMode && selectedIds.size > 0"
+      :count="selectedIds.size"
+      :archive-label="batchArchiveLabel"
+      @change-location="showBatchLocation = true"
+      @add-tags="showBatchTagAdd = true"
+      @remove-tags="showBatchTagRemove = true"
+      @duplicate="showBatchDuplicate = true"
+      @archive="showBatchArchive = true"
+      @delete="showBatchDelete = true"
+    />
+
+    <BatchLocationSheet
+      :open="showBatchLocation"
+      :items="selectedItems"
+      @update:open="showBatchLocation = $event"
+      @done="fetchItems(); fetchLocation(); exitSelectionMode()"
+    />
+    <BatchTagSheet
+      :open="showBatchTagAdd"
+      :items="selectedItems"
+      mode="add"
+      @update:open="showBatchTagAdd = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchTagSheet
+      :open="showBatchTagRemove"
+      :items="selectedItems"
+      mode="remove"
+      @update:open="showBatchTagRemove = $event"
+      @done="fetchItems(); exitSelectionMode()"
+    />
+    <BatchDeleteSheet
+      :open="showBatchDelete"
+      :items="selectedItems"
+      @update:open="showBatchDelete = $event"
+      @done="fetchItems(); fetchLocation(); exitSelectionMode()"
+    />
+    <BatchDuplicateSheet
+      :open="showBatchDuplicate"
+      :items="selectedItems"
+      @update:open="showBatchDuplicate = $event"
+      @done="fetchItems(); fetchLocation(); exitSelectionMode()"
+    />
+    <BatchArchiveSheet
+      :open="showBatchArchive"
+      :items="selectedItems"
+      @update:open="showBatchArchive = $event"
+      @done="fetchItems(); fetchLocation(); exitSelectionMode()"
     />
   </div>
 </template>
