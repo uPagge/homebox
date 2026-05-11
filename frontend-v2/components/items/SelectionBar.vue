@@ -4,6 +4,7 @@ import { MapPin, TagsIcon, Minus, Copy, Trash2, Archive } from "lucide-vue-next"
 defineProps<{
   count: number;
   archiveLabel?: string;
+  hideMutating?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -26,34 +27,36 @@ const emit = defineEmits<{
 
         <div class="w-px h-5 bg-border" />
 
-        <button
-          class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="Переместить"
-          @click="emit('changeLocation')"
-        >
-          <MapPin class="w-4 h-4" />
-        </button>
-        <button
-          class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="Добавить теги"
-          @click="emit('addTags')"
-        >
-          <TagsIcon class="w-4 h-4" />
-        </button>
-        <button
-          class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="Убрать теги"
-          @click="emit('removeTags')"
-        >
-          <Minus class="w-4 h-4" />
-        </button>
-        <button
-          class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title="Дублировать"
-          @click="emit('duplicate')"
-        >
-          <Copy class="w-4 h-4" />
-        </button>
+        <template v-if="!hideMutating">
+          <button
+            class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="Переместить"
+            @click="emit('changeLocation')"
+          >
+            <MapPin class="w-4 h-4" />
+          </button>
+          <button
+            class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="Добавить теги"
+            @click="emit('addTags')"
+          >
+            <TagsIcon class="w-4 h-4" />
+          </button>
+          <button
+            class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="Убрать теги"
+            @click="emit('removeTags')"
+          >
+            <Minus class="w-4 h-4" />
+          </button>
+          <button
+            class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title="Дублировать"
+            @click="emit('duplicate')"
+          >
+            <Copy class="w-4 h-4" />
+          </button>
+        </template>
         <button
           class="p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           :title="archiveLabel ?? 'Архивировать'"

@@ -203,10 +203,7 @@ const totalPages = computed(() => Math.ceil(total.value / filters.pageSize));
       v-if="selectionMode && selectedIds.size > 0"
       :count="selectedIds.size"
       archive-label="Вернуть из архива"
-      @change-location="() => {}"
-      @add-tags="() => {}"
-      @remove-tags="() => {}"
-      @duplicate="() => {}"
+      hide-mutating
       @archive="showBatchArchive = true"
       @delete="showBatchDelete = true"
     />
