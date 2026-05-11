@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { X, MapPin, Tag, Archive } from "lucide-vue-next";
+import { toast } from "vue-sonner";
 import type { LocationOutCount, TagOut } from "~~/lib/api/types/data-contracts";
 
 const props = defineProps<{
@@ -46,6 +47,14 @@ function tagName(id: string) {
   return tags.value.find(t => t.id === id)?.name ?? "...";
 }
 
+function onScannedLocation(target: { kind: "item" | "location"; id: string }) {
+  if (!locations.value.some(l => l.id === target.id)) {
+    toast.error("Локация не найдена в списке");
+    return;
+  }
+  emit("toggleLocation", target.id);
+}
+
 const showLocationPicker = ref(false);
 const showTagPicker = ref(false);
 </script>
@@ -89,6 +98,12 @@ const showTagPicker = ref(false);
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <ScannerPickerButton
+      :accepts="['location']"
+      button-class="w-8 h-8"
+      @picked="onScannedLocation"
+    />
 
     <!-- Tag filter chip -->
     <DropdownMenu v-model:open="showTagPicker">
