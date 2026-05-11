@@ -63,6 +63,7 @@ func (ctrl *V1Controller) HandleItemsGetAll() errchain.HandlerFunc {
 			OnlyWithPhoto:    queryBool(params.Get("onlyWithPhoto")),
 			ParentItemIDs:    queryUUIDList(params, "parentIds"),
 			IncludeArchived:  queryBool(params.Get("includeArchived")),
+			ArchivedOnly:     queryBool(params.Get("archivedOnly")),
 			Fields:           filterFieldItems(params["fields"]),
 			OrderBy:          params.Get("orderBy"),
 		}
