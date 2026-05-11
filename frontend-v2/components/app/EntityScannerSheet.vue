@@ -3,6 +3,7 @@ import { ref, watch, nextTick, onUnmounted } from "vue";
 import { DialogRoot } from "reka-ui";
 import { Flashlight, FlashlightOff } from "lucide-vue-next";
 import { useScanner, type ScanResult } from "~/composables/use-scanner";
+import { useNfcReader } from "~/composables/use-nfc-reader";
 import { DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const props = defineProps<{
@@ -25,14 +26,18 @@ const scanner = useScanner({
   duplicateDebounceMs: 800,
 });
 
+const nfc = useNfcReader();
+
 watch(
   () => props.open,
   async (val) => {
     if (val) {
       await nextTick();
       if (videoEl.value) await scanner.start(videoEl.value);
+      if (nfc.isSupported.value) await nfc.start();
     } else {
       scanner.stop();
+      nfc.stop();
     }
   },
 );
@@ -46,8 +51,16 @@ watch(
   },
 );
 
+const unsubscribeNfc = nfc.onResult((r) => {
+  emit("scan", r);
+  scanner.reset();
+  nfc.stop();
+});
+
 onUnmounted(() => {
   scanner.stop();
+  nfc.stop();
+  unsubscribeNfc();
 });
 
 function close(): void {
