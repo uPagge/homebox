@@ -28,10 +28,23 @@ const scanner = useScanner({
 
 const nfc = useNfcReader();
 
+// Gates camera and NFC handlers so a near-simultaneous pair of reads
+// (e.g. camera frame decoded the same instant a tag is tapped) emits exactly once.
+let resultEmitted = false;
+
+function emitOnce(r: ScanResult): void {
+  if (resultEmitted) return;
+  resultEmitted = true;
+  emit("scan", r);
+  scanner.reset();
+  nfc.stop();
+}
+
 watch(
   () => props.open,
   async (val) => {
     if (val) {
+      resultEmitted = false;
       await nextTick();
       if (videoEl.value) await scanner.start(videoEl.value);
       if (nfc.isSupported.value) await nfc.start();
@@ -46,16 +59,11 @@ watch(
   () => scanner.result.value,
   (r) => {
     if (!r) return;
-    emit("scan", r);
-    scanner.reset();
+    emitOnce(r);
   },
 );
 
-const unsubscribeNfc = nfc.onResult((r) => {
-  emit("scan", r);
-  scanner.reset();
-  nfc.stop();
-});
+const unsubscribeNfc = nfc.onResult(emitOnce);
 
 onUnmounted(() => {
   scanner.stop();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onUnmounted } from "vue";
+import { computed, ref, watch, onUnmounted } from "vue";
 import { DialogRoot } from "reka-ui";
 import { Nfc, X } from "lucide-vue-next";
 import { toast } from "vue-sonner";
@@ -20,41 +20,49 @@ const previewUrl = computed(() =>
   typeof window === "undefined" ? "" : buildTagUrl(props.target, window.location.origin),
 );
 
-watch(
-  () => props.open,
-  async (val) => {
-    if (!val) return;
-    try {
-      await writer.write(props.target);
-      toast.success("Тег записан");
-      emit("update:open", false);
-    } catch (e) {
-      const err = mapNfcWriteError(e);
-      switch (err.kind) {
-        case "cancelled":
-          break;
-        case "permission_denied":
-          toast.error("Разрешите NFC в настройках браузера");
-          emit("update:open", false);
-          break;
-        case "tag_locked":
-          toast.error("Тег защищён от записи");
-          emit("update:open", false);
-          break;
-        case "timeout":
-          toast.error("Тег не поднесён");
-          emit("update:open", false);
-          break;
-        case "tag_removed":
-          toast.error("Запись прервана, держите тег ровно");
-          emit("update:open", false);
-          break;
-        case "read_error":
-          toast.error(`Не удалось записать тег: ${err.cause}`);
-          emit("update:open", false);
-          break;
-      }
+// Bumped on transient failures (tag_removed) to re-trigger writer.write()
+// without forcing the user to close and reopen the sheet.
+const attempt = ref(0);
+
+async function runWrite(): Promise<void> {
+  try {
+    await writer.write(props.target);
+    toast.success("Тег записан");
+    emit("update:open", false);
+  } catch (e) {
+    const err = mapNfcWriteError(e);
+    switch (err.kind) {
+      case "cancelled":
+        break;
+      case "permission_denied":
+        toast.error("Разрешите NFC в настройках браузера");
+        emit("update:open", false);
+        break;
+      case "tag_locked":
+        toast.error("Тег защищён от записи");
+        emit("update:open", false);
+        break;
+      case "timeout":
+        toast.error("Тег не поднесён");
+        emit("update:open", false);
+        break;
+      case "tag_removed":
+        toast.error("Запись прервана, держите тег ровно");
+        attempt.value++;
+        break;
+      case "read_error":
+        toast.error(`Не удалось записать тег: ${err.cause}`);
+        emit("update:open", false);
+        break;
     }
+  }
+}
+
+watch(
+  [() => props.open, attempt],
+  async ([open]) => {
+    if (!open) return;
+    await runWrite();
   },
 );
 

@@ -64,6 +64,8 @@ export function useNfcWriter(): UseNfcWriter {
       );
       await withWriteTimeout(writePromise, WRITE_TIMEOUT_MS);
     } finally {
+      // Release NFC radio: noop on success, cancels in-flight write on timeout/error.
+      controller?.abort();
       isWriting.value = false;
       controller = null;
     }
